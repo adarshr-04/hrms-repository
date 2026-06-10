@@ -6,6 +6,7 @@ import AuthGuard from './components/auth/AuthGuard';
 
 const HomePage = lazy(() => import('./pages/page'));
 const LoginPage = lazy(() => import('./pages/login/page'));
+const ActivatePage = lazy(() => import('./pages/activate/page'));
 const EmployeesPage = lazy(() => import('./pages/employees/page'));
 const EmployeeAddPage = lazy(() => import('./pages/employees/add/page'));
 const EmployeeDetailsPage = lazy(() => import('./pages/employees/details/page'));
@@ -39,6 +40,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/activate" element={<ActivatePage />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/employees/add" element={<EmployeeAddPage />} />
               <Route path="/employees/details" element={<EmployeeDetailsPage />} />

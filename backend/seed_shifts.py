@@ -4,8 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
-from attendance.models import Shift
-from employees.models import Employee
+from employees.models import Shift, Employee
 from datetime import time
 
 def seed():

@@ -13,13 +13,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && location.pathname !== '/login') {
+    if (!loading && !isAuthenticated && location.pathname !== '/login' && location.pathname !== '/activate') {
       navigate('/login');
     }
   }, [isAuthenticated, loading, location.pathname, navigate]);
 
   useEffect(() => {
-    if (loading || !isAuthenticated || location.pathname === "/login") return;
+    if (loading || !isAuthenticated || location.pathname === "/login" || location.pathname === "/activate") return;
     const role = user?.role ?? "EMPLOYEE";
     if (!isRouteAllowed(location.pathname, role)) {
       navigate("/");
@@ -34,8 +34,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If we are on the login page, just show the login page without the layout
-  if (location.pathname === '/login') {
+  // If we are on the login or activation page, just show the page without the layout
+  if (location.pathname === '/login' || location.pathname === '/activate') {
     return (
       <>
         {children}

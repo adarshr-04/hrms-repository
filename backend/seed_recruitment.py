@@ -15,7 +15,7 @@ import django
 django.setup()
 
 from django.db import transaction
-from recruitment.models import JobPosting, Candidate, Application
+from employees.models import JobPosting, Candidate, Application
 
 JOBS_DATA = [
     {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, User, Loader2, AlertCircle, Shield, Building2, Key, Mail, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Lock, User, Loader2, AlertCircle, Shield, Building2, Key, Mail, CheckCircle2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 
@@ -13,6 +13,7 @@ export default function LoginPage() {
   // Login fields
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   // Forgot / Reset fields
   const [email, setEmail] = useState('');
@@ -49,7 +50,11 @@ export default function LoginPage() {
       await login({ username, password });
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(parseErrorMessage(err.response?.data, 'Unable to reach the server. Check if the backend is running and CORS is configured.'));
+        if (err.response?.status === 401) {
+          setError('Wrong username or password.');
+        } else {
+          setError(parseErrorMessage(err.response?.data, 'Unable to reach the server. Check if the backend is running and CORS is configured.'));
+        }
       } else {
         setError('Login failed due to an unexpected error.');
       }
@@ -64,9 +69,8 @@ export default function LoginPage() {
     setError('');
     setSuccessMsg('');
     try {
-      const response = await api.post('/accounts/forgot-password/', { email });
-      const receivedCode = response.data.code;
-      setSuccessMsg(`A 6-digit verification code has been generated. For testing, it is: ${receivedCode}`);
+      await api.post('/accounts/forgot-password/', { email });
+      setSuccessMsg('A 6-digit verification code has been sent to your email. Please check your inbox.');
       setMode('reset');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
@@ -266,13 +270,13 @@ export default function LoginPage() {
                 <div style={{ position: 'relative' }}>
                   <Lock size={17} color="rgba(255,255,255,0.4)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     style={{
-                      width: '100%', paddingLeft: '44px', paddingRight: '16px',
+                      width: '100%', paddingLeft: '44px', paddingRight: '44px',
                       paddingTop: '14px', paddingBottom: '14px',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.12)',
@@ -283,6 +287,13 @@ export default function LoginPage() {
                     onFocus={(e) => e.target.style.borderColor = 'rgba(99,102,241,0.7)'}
                     onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    {showPassword ? <EyeOff size={17} color="rgba(255,255,255,0.4)" /> : <Eye size={17} color="rgba(255,255,255,0.4)" />}
+                  </button>
                 </div>
               </div>
 

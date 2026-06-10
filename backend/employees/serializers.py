@@ -114,16 +114,49 @@ class EmployeeSerializer(serializers.ModelSerializer):
             username = f"{base_username}{counter}"
             counter += 1
 
-        # Create the Django user without a login password.
-        # Employee must use "Forgot Password" to set their own password.
+        # Generate a secure temporary password (make_random_password was removed in Django 5.0)
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits + string.punctuation
+        temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
         user = User.objects.create_user(
             username=username,
             email=email,
             first_name=first_name,
             last_name=last_name,
+            password=temp_password
         )
-        user.set_unusable_password()
-        user.save(update_fields=['password'])
+
+        # Send welcome email with credentials
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        subject = "Welcome to HRMS Enterprise - Your Login Credentials"
+        message = f"""Hello {first_name},
+
+Welcome to HRMS Enterprise! Your account has been successfully created.
+Please use the following credentials to log in to your dashboard:
+
+Username: {username}
+Temporary Password: {temp_password}
+
+Login URL: http://localhost:3000/login
+
+For security reasons, we strongly recommend changing your password from the Settings page after your first login.
+
+Best regards,
+HR Team"""
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com'),
+                [email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
 
         # Link the user to the employee record
         validated_data['user'] = user

@@ -17,8 +17,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 from django.contrib.auth.models import User
-from employees.models import Employee, Department
-from accounts.models import Role, UserRole
+from employees.models import Employee, Department, Role, UserRole
 
 # Define professional departments
 DEPARTMENTS = [

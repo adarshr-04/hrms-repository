@@ -13,10 +13,7 @@ import django
 django.setup()
 
 from django.db import transaction
-from employees.models import Employee
-from attendance.models import Attendance
-from leaves.models import Leave
-from projects.models import Project, ProjectAssignment
+from employees.models import Employee, Attendance, Leave, Project, ProjectAssignment
 
 def seed_dashboard():
     print("STARTING HRMS DASHBOARD SEEDING PROCESS...")

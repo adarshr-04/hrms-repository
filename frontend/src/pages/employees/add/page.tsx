@@ -154,25 +154,50 @@ export default function AddEmployeePage() {
       navigate("/employees");
     } catch (error: any) {
       console.error("Submission Error Response:", error.response?.data);
+      console.error("Error data type:", typeof error.response?.data);
       
       if (error.response?.data) {
         const serverErrors = error.response.data;
         
-        // Map backend errors to specific form fields
-        Object.entries(serverErrors).forEach(([key, value]) => {
-          const message = Array.isArray(value) ? value[0] : value;
+        // Handle case where backend returns a plain string
+        if (typeof serverErrors === 'string') {
+          toast.error(serverErrors, { duration: 8000 });
+        } else if (typeof serverErrors === 'object') {
+          const errorMessages: string[] = [];
           
-          // Map backend field names to frontend form keys
-          let fieldKey: any = key;
-          if (key === 'first_name' || key === 'last_name') fieldKey = 'full_name';
-          
-          setError(fieldKey, {
-            type: 'server',
-            message: message as string
+          // Map backend errors to specific form fields
+          Object.entries(serverErrors).forEach(([key, value]) => {
+            const message = Array.isArray(value) ? value[0] : value;
+            const msgStr = String(message);
+            
+            // Map backend field names to frontend form keys
+            let fieldKey: any = key;
+            if (key === 'first_name' || key === 'last_name') fieldKey = 'full_name';
+            
+            // Collect all error messages for display
+            const fieldLabel = key === 'non_field_errors' ? '' : `${key}: `;
+            errorMessages.push(`${fieldLabel}${msgStr}`);
+            
+            // Try to set form field error for highlighting
+            try {
+              setError(fieldKey, {
+                type: 'server',
+                message: msgStr
+              });
+            } catch (e) {
+              // Field doesn't exist in form
+            }
           });
-        });
 
-        toast.error("Please correct the highlighted errors.");
+          // Show actual error messages in toast
+          if (errorMessages.length > 0) {
+            errorMessages.forEach(msg => toast.error(msg, { duration: 8000 }));
+          } else {
+            toast.error("An unknown error occurred.");
+          }
+        } else {
+          toast.error("An unexpected error occurred.");
+        }
       } else {
         toast.error("Network error or server is down.");
       }

@@ -4,13 +4,14 @@ import {
   X, 
   Download, 
   Save, 
-  Sparkles, 
   RefreshCw, 
   User, 
   Briefcase, 
   Building2,
   Calendar,
-  DollarSign
+  Printer,
+  Edit3,
+  Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +39,41 @@ interface OfferLetterModalProps {
   mode: 'employee' | 'recruitment'; // Determines which action buttons to show
 }
 
+const STATIC_TEMPLATE = `Date: [Date]
+
+To,
+[Candidate/Employee Name]
+[Address]
+
+Subject: Offer of Employment — [Designation/Role]
+
+Dear [Candidate/Employee Name],
+
+We are pleased to offer you employment for the position of "[Designation/Role]" in the [Department] department at Enterprise Corp. We believe your skills and background will be a valuable asset to our team.
+
+Terms of Employment:
+1. Commencement Date: Your employment will commence on [Commencement Date].
+2. Nature of Position: This is a [Employment Type, e.g. Full-Time] position.
+3. Reporting Manager: You will report to [Manager Name/Title].
+4. Location: Your primary work location will be Enterprise Corp, Head Office.
+
+Compensation and Benefits:
+Your annual compensation package (CTC) is [Salary/Compensation Details], payable in monthly installments, subject to applicable tax deductions and withholding. You will also be eligible for standard company benefits, subject to company policies.
+
+Terms & Conditions:
+- This offer is subject to satisfactory reference and background checks.
+- You will be on probation for a period of [Probation Period, e.g. 3 months] from your date of joining.
+- You agree to adhere to all policies, guidelines, and confidentiality agreements of the company.
+
+This letter supersedes all previous verbal or written agreements regarding your terms of employment.
+
+Please sign and return a copy of this letter to confirm your acceptance.
+
+Warm Regards,
+
+Human Resources Department
+Enterprise Corp.`;
+
 export default function OfferLetterModal({
   isOpen,
   onClose,
@@ -58,110 +94,141 @@ export default function OfferLetterModal({
   mode
 }: OfferLetterModalProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [salary, setSalary] = useState(initialSalary || '');
-  const [isEdited, setIsEdited] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const generateDefaultTemplate = (currentSalary: string) => {
-    const today = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-
-    let formattedHireDate = '';
-    if (hireDate) {
-      try {
-        formattedHireDate = new Date(hireDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-      } catch (e) {
-        formattedHireDate = hireDate;
-      }
-    }
-
-    const hireLine = hireDate 
-      ? `Your employment commences on / will commence on ${formattedHireDate || hireDate}.\n`
-      : '';
-    const idLine = personId 
-      ? `You have been assigned Employee ID: ${personId}.\n`
-      : '';
-
-    const salaryDisplay = currentSalary 
-      ? `$${Number(currentSalary).toLocaleString('en-US')}` 
-      : '[salary or placeholder]';
-
-    return `Date: ${today}
-
-To,
-${personName}
-
-Subject: Offer of Employment — ${jobTitle}
-
-Dear ${personName},
-
-We are delighted to extend this offer of employment for the position of "${jobTitle}" in the ${department} department at Enterprise Corp.
-
-${hireLine}${idLine}
-Compensation:
-Your annual compensation package is ${salaryDisplay} payable in monthly installments, subject to applicable tax deductions.
-
-Employment Type: ${employmentType || 'Full-Time'}
-Reporting Manager: ${managerName || 'Department Head'}
-Work Location: Enterprise Corp, Head Office
-
-This letter supersedes all previous verbal or written communications regarding your terms of employment. We are delighted to have you as part of our team and look forward to your continued contributions.
-
-Please sign and return a copy of this letter for our records.
-
-Warm Regards,
-
-Human Resources Department
-Enterprise Corp.`;
-  };
-
-  // Sync initial values when modal opens or inputs change
+  // Sync initial values when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSalary(initialSalary || '');
-      setIsEdited(!!initialOfferText);
+      setIsEditing(false); // Default to preview mode
       
       if (editorRef.current) {
         if (initialOfferText) {
           editorRef.current.innerText = initialOfferText;
         } else {
-          editorRef.current.innerText = generateDefaultTemplate(initialSalary || '');
+          editorRef.current.innerText = STATIC_TEMPLATE;
         }
       }
     }
-  }, [isOpen, initialOfferText, initialSalary]);
-
-  // Handle salary input change
-  const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSalary(value);
-
-    // If the text hasn't been manually edited, auto-update the salary in the editor
-    if (!isEdited && editorRef.current) {
-      editorRef.current.innerText = generateDefaultTemplate(value);
-    }
-  };
+  }, [isOpen, initialOfferText]);
 
   const handleResetToDefault = () => {
     if (editorRef.current) {
-      editorRef.current.innerText = generateDefaultTemplate(salary);
-      setIsEdited(false);
+      editorRef.current.innerText = STATIC_TEMPLATE;
     }
-  };
-
-  const handleInput = () => {
-    setIsEdited(true);
   };
 
   const handleDownload = () => {
     if (editorRef.current) {
       onDownloadPDF(editorRef.current.innerText);
+    }
+  };
+
+  const handlePrint = () => {
+    if (!editorRef.current) return;
+    const printContent = editorRef.current.innerText;
+    
+    // Open a new printable popup window with official A4 template styling
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Offer Letter - ${personName}</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                color: #1e293b;
+                padding: 20mm;
+                line-height: 1.6;
+                margin: 0;
+              }
+              .letterhead {
+                display: flex;
+                justify-content: space-between;
+                border-bottom: 2px solid #6366f1;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+              }
+              .letterhead-title {
+                font-size: 24px;
+                font-weight: 900;
+                letter-spacing: 0.15em;
+                color: #1e1b4b;
+                margin: 0;
+                text-transform: uppercase;
+              }
+              .letterhead-subtitle {
+                font-size: 11px;
+                font-weight: 600;
+                color: #64748b;
+                margin-top: 2px;
+              }
+              .right-align {
+                text-align: right;
+                font-size: 10px;
+                color: #64748b;
+                line-height: 1.4;
+              }
+              .content {
+                white-space: pre-wrap;
+                font-size: 14px;
+                color: #334155;
+              }
+              .signatures {
+                margin-top: 60px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 50px;
+                font-size: 12px;
+              }
+              .sig-line {
+                border-bottom: 1px dashed #cbd5e1;
+                width: 200px;
+                height: 30px;
+                margin-top: 10px;
+              }
+              @media print {
+                body { padding: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="letterhead">
+              <div>
+                <h1 class="letterhead-title">ENTERPRISE CORP</h1>
+                <div class="letterhead-subtitle">Innovation & Talent Solutions</div>
+              </div>
+              <div class="right-align">
+                <div>100 Innovation Way, Suite 400</div>
+                <div>Tech District, CA 94016</div>
+                <div>careers@enterprisecorp.com | www.enterprisecorp.com</div>
+              </div>
+            </div>
+            
+            <div class="content">${printContent}</div>
+            
+            <div class="signatures">
+              <div>
+                <strong>Authorized Signatory</strong>
+                <div style="color: #64748b; margin-top: 2px;">Human Resources</div>
+                <div class="sig-line"></div>
+              </div>
+              <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+                <div><strong>Candidate Signature</strong></div>
+                <div style="color: #64748b; margin-top: 2px;">Acceptance</div>
+                <div class="sig-line"></div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      // Wait for content to render and trigger print dialogue
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
     }
   };
 
@@ -172,7 +239,7 @@ Enterprise Corp.`;
     if (mode === 'employee' && onSaveToVault) {
       onSaveToVault(text);
     } else if (mode === 'recruitment' && onSaveDraft) {
-      onSaveDraft(text, salary);
+      onSaveDraft(text, initialSalary || '');
     }
   };
 
@@ -189,8 +256,8 @@ Enterprise Corp.`;
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-800 tracking-tight">Offer Letter Workspace</h2>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Customize &amp; Issue Document</p>
+              <h2 className="text-base font-bold text-slate-800 tracking-tight">Offer Letter Editor Workspace</h2>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Static Template Editing System</p>
             </div>
           </div>
           <button 
@@ -207,17 +274,37 @@ Enterprise Corp.`;
           {/* Left Column: A4 Preview (60% / 3 cols) */}
           <div className="md:col-span-3 flex flex-col gap-2">
             <div className="flex items-center justify-between ml-1">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Letter Preview (Click to Edit inline)</span>
-              {isEdited && (
-                <span className="text-[9px] font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Edited Manually
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Offer Document Template Preview</span>
+              {isEditing ? (
+                <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg flex items-center gap-1 border border-indigo-100">
+                  <Edit3 className="w-3 h-3" /> Edit Mode Active
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg flex items-center gap-1 border border-slate-100">
+                  <Eye className="w-3 h-3" /> Preview Only (Locked)
                 </span>
               )}
             </div>
+
+            {/* Notification Banner */}
+            <div className={cn(
+              "px-4 py-2.5 rounded-xl border text-[11px] font-semibold flex items-center gap-2 transition-all",
+              isEditing 
+                ? "bg-indigo-50/50 border-indigo-100 text-indigo-700 animate-pulse" 
+                : "bg-amber-50/40 border-amber-100/60 text-amber-700/80"
+            )}>
+              {isEditing 
+                ? "✍️ Edit Mode enabled. Click anywhere inside the letter below to customize name, role, CTC, dates, and terms manually."
+                : "👁️ Locked Preview. Click the 'Edit Offer Letter' switch in the control panel to modify contents manually."
+              }
+            </div>
             
             {/* Simulated A4 Page */}
-            <div className="border border-slate-200/80 rounded-2xl shadow-sm bg-slate-50/30 p-[30px] flex flex-col min-h-[500px] overflow-hidden hover:border-slate-300 transition-all group">
-              {/* Letterhead */}
+            <div className={cn(
+              "border rounded-2xl shadow-sm bg-slate-50/30 p-[30px] flex flex-col min-h-[520px] overflow-hidden transition-all group",
+              isEditing ? "border-indigo-200 ring-2 ring-indigo-50" : "border-slate-200/80 hover:border-slate-300"
+            )}>
+              {/* Letterhead Header */}
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h1 className="text-sm font-black text-slate-800 tracking-[0.2em] uppercase">Enterprise Corp</h1>
@@ -237,11 +324,13 @@ Enterprise Corp.`;
               {/* Editable Body */}
               <div 
                 ref={editorRef}
-                contentEditable={true}
+                contentEditable={isEditing}
                 suppressContentEditableWarning={true}
-                onInput={handleInput}
-                className="flex-1 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap outline-none p-3 rounded-xl border border-transparent group-hover:border-slate-200/40 hover:bg-white/60 focus:bg-white focus:border-indigo-200 focus:ring-2 focus:ring-indigo-50 transition-all font-sans"
-                style={{ minHeight: '320px' }}
+                className={cn(
+                  "flex-1 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap outline-none p-3 rounded-xl border border-transparent transition-all font-sans",
+                  isEditing ? "bg-white border-slate-200/60 hover:border-slate-300 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50" : "cursor-not-allowed select-none"
+                )}
+                style={{ minHeight: '340px' }}
               />
 
               {/* Signature Blocks */}
@@ -265,7 +354,7 @@ Enterprise Corp.`;
             
             {/* Person Info Card */}
             <div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2.5">Recipients Details</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2.5">Recipients Records Reference</span>
               <div className="bg-white rounded-xl border border-slate-200/60 p-4 space-y-3.5 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-100">
@@ -300,33 +389,35 @@ Enterprise Corp.`;
               </div>
             </div>
 
-            {/* Salary/CTC Input */}
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">Annual CTC (Salary)</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-                <input
-                  type="number"
-                  value={salary}
-                  onChange={handleSalaryChange}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm font-semibold text-slate-800 bg-white border border-slate-200/80 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 hover:border-slate-300 transition-all outline-none"
-                  placeholder="Enter annual salary..."
-                />
+            {/* Toggle switch for Edit Mode */}
+            <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between shadow-sm">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-indigo-950 block">Edit Offer Letter</span>
+                <span className="text-[10px] font-medium text-indigo-500 block leading-tight">Enable inline document typing</span>
               </div>
-              <p className="text-[10px] text-slate-400 leading-normal">
-                Updating the salary dynamically updates the compensation section inside the document in real time.
-              </p>
+              <button
+                type="button"
+                onClick={() => setIsEditing(!isEditing)}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-colors relative flex items-center px-1 border outline-none",
+                  isEditing ? "bg-indigo-600 border-indigo-700" : "bg-slate-200 border-slate-300"
+                )}
+              >
+                <div className={cn(
+                  "w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
+                  isEditing ? "translate-x-5.5" : "translate-x-0"
+                )} />
+              </button>
             </div>
 
             {/* Reset to Default Template */}
             <button
+              type="button"
               onClick={handleResetToDefault}
-              className="w-full flex items-center justify-center gap-2 border border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 text-slate-500 hover:text-indigo-600 py-2.5 rounded-xl text-xs font-bold transition-all"
+              className="w-full flex items-center justify-center gap-2 border border-dashed border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 py-2.5 rounded-xl text-xs font-bold transition-all outline-none"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Reset to Default Template
+              Reset to Base Template
             </button>
 
             {/* Divider */}
@@ -334,29 +425,43 @@ Enterprise Corp.`;
 
             {/* Action Buttons */}
             <div className="space-y-2.5 mt-auto">
-              <button
-                disabled={isGeneratingPdf}
-                onClick={handleDownload}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-              >
-                <Download className="w-4 h-4" />
-                {isGeneratingPdf ? 'Generating PDF...' : 'Download PDF Document'}
-              </button>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  disabled={isGeneratingPdf}
+                  onClick={handleDownload}
+                  className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all disabled:opacity-50 outline-none"
+                >
+                  <Download className="w-4 h-4" />
+                  PDF File
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all outline-none"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Out
+                </button>
+              </div>
 
               {mode === 'employee' ? (
                 <button
+                  type="button"
                   disabled={isSaving}
                   onClick={handleSave}
-                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 outline-none"
                 >
                   <Save className="w-4 h-4" />
                   {isSaving ? 'Saving to Vault...' : 'Save to Digital Vault'}
                 </button>
               ) : (
                 <button
+                  type="button"
                   disabled={isSaving}
                   onClick={handleSave}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white py-3 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 outline-none"
                 >
                   <Save className="w-4 h-4" />
                   {isSaving ? 'Saving Draft...' : 'Save Offer Draft'}

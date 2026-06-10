@@ -3,8 +3,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from accounts.models import Role, UserRole
-from .models import Document, Employee
+from employees.models import Role, UserRole
+from .models import Document, Employee, EmployeeInviteToken
 from .serializers import EmployeeSerializer
 
 
@@ -19,8 +19,13 @@ class EmployeeSerializerTests(APITestCase):
         self.assertTrue(serializer.is_valid(), serializer.errors)
         employee = serializer.save()
 
-        self.assertFalse(employee.user.has_usable_password())
-        self.assertFalse(employee.user.check_password('HRMSTemp@2026'))
+        # Under the invite flow, the user profile is NOT created until activation
+        self.assertIsNone(employee.user)
+        
+        # Verify an invite token was generated
+        invite = EmployeeInviteToken.objects.filter(employee=employee).first()
+        self.assertIsNotNone(invite)
+        self.assertFalse(invite.is_used)
 
 
 class DocumentAccessTests(APITestCase):

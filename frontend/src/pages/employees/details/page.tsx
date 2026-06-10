@@ -27,7 +27,6 @@ import {
   Download,
   File,
   X,
-  Sparkles,
   Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -42,9 +41,11 @@ import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import OfferLetterModal from '@/components/OfferLetterModal';
+import { useAuth } from '@/context/AuthContext';
 
 
 export default function EmployeeProfilePage() {
+  const { isHR, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id');
   const navigate = useNavigate();
@@ -186,10 +187,17 @@ export default function EmployeeProfilePage() {
   };
 
   useEffect(() => {
-    if (id) {
+    if (!authLoading && !isHR) {
+      toast.error("Access denied. Only HR and Admins can view employee profiles.");
+      navigate('/employees');
+    }
+  }, [isHR, authLoading, navigate]);
+
+  useEffect(() => {
+    if (id && isHR) {
       fetchEmployee();
     }
-  }, [id]);
+  }, [id, isHR]);
 
   const getAvatarUrl = (path: string) => {
     if (!path) return undefined;
@@ -261,7 +269,7 @@ export default function EmployeeProfilePage() {
     return path.split('/').pop() || 'file';
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-slate-200" />
@@ -270,7 +278,7 @@ export default function EmployeeProfilePage() {
     );
   }
 
-  if (!employee) return null;
+  if (!isHR || !employee) return null;
 
   return (
     <div className="space-y-10 pb-20 bg-[#FAFAFA] min-h-screen -m-6 p-10">
@@ -496,10 +504,10 @@ export default function EmployeeProfilePage() {
                           setOfferSalary('');
                           setShowOfferModal(true);
                         }}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-violet-100"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-100"
                       >
-                        <Sparkles className="w-4 h-4" />
-                        <span>Generate Offer Letter</span>
+                        <FileText className="w-4 h-4" />
+                        <span>Create Offer Letter</span>
                       </button>
                     </div>
                   </div>

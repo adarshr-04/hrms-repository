@@ -28,11 +28,20 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState({
     project: '',
     employee: '',
     role: '',
     assigned_date: format(new Date(), 'yyyy-MM-dd'),
+  });
+  const [projectForm, setProjectForm] = useState({
+    project_name: '',
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    end_date: '',
+    status: 'PLANNING',
+    manager: '',
   });
   const canAssignProjects = isHR || isManager;
 
@@ -109,6 +118,38 @@ export default function ProjectsPage() {
     }
   };
 
+  const submitProject = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSavingProject(true);
+
+    try {
+      await projectService.createProject({
+        project_name: projectForm.project_name,
+        start_date: projectForm.start_date,
+        end_date: projectForm.end_date || null,
+        status: projectForm.status,
+        manager: projectForm.manager || null,
+      });
+      toast.success('Project created successfully');
+      setShowCreateModal(false);
+      setProjectForm({
+        project_name: '',
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        end_date: '',
+        status: 'PLANNING',
+        manager: '',
+      });
+      await fetchProjects();
+    } catch (error: any) {
+      const message = error.response?.data?.detail
+        || error.response?.data?.non_field_errors?.[0]
+        || 'Could not create project';
+      toast.error(message);
+    } finally {
+      setSavingProject(false);
+    }
+  };
+
   const getStatusColor = (status: any) => {
     switch (status) {
       case 'IN_PROGRESS': return 'bg-blue-50 text-blue-700 border-blue-100';
@@ -125,13 +166,13 @@ export default function ProjectsPage() {
           <h1 className="text-2xl font-bold text-slate-900">Project Management</h1>
           <p className="text-slate-500">Track initiatives and team allocations across the organization.</p>
         </div>
-        {canAssignProjects && (
+        {isHR && (
           <button
-            onClick={() => openAssignModal()}
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            <span>Assign Project</span>
+            <span>Create Project</span>
           </button>
         )}
       </div>
@@ -168,9 +209,17 @@ export default function ProjectsPage() {
                 
                 <div>
                   <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{project.project_name}</h3>
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {project.description}
-                  </p>
+                  {project.manager_name && (
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-slate-500">
+                      <span className="font-medium text-slate-400">Lead:</span>
+                      <span className="font-semibold text-indigo-600 bg-indigo-50/50 px-2 py-0.5 rounded border border-indigo-100/50">{project.manager_name}</span>
+                    </div>
+                  )}
+                  {project.description && (
+                    <p className="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                      {project.description}
+                    </p>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
@@ -200,12 +249,25 @@ export default function ProjectsPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => canAssignProjects ? openAssignModal(project.id) : undefined}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-                >
-                  {canAssignProjects ? 'Assign' : 'View Details'} <ChevronRight className="w-3 h-3" />
-                </button>
+                {(() => {
+                  const isProjectManager = user?.employee_profile_id && project.manager === user.employee_profile_id;
+                  const canAssignThisProject = isHR || isProjectManager;
+                  if (canAssignThisProject) {
+                    return (
+                      <button
+                        onClick={() => openAssignModal(project.id)}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                      >
+                        Assign Team <ChevronRight className="w-3 h-3" />
+                      </button>
+                    );
+                  }
+                  return (
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
+                      View Only
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           ))
@@ -236,9 +298,10 @@ export default function ProjectsPage() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Project</label>
                 <select
                   required
+                  disabled={!!assignmentForm.project}
                   value={assignmentForm.project}
                   onChange={(event) => setAssignmentForm((form) => ({ ...form, project: event.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-500"
                 >
                   <option value="">Select project</option>
                   {projects.map((project) => (
@@ -303,6 +366,114 @@ export default function ProjectsPage() {
                 >
                   {savingAssignment && <Loader2 className="w-4 h-4 animate-spin" />}
                   Assign
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-lg bg-white rounded-lg shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Create Project</h2>
+                <p className="text-sm text-slate-500">
+                  Add a new organization initiative and assign its Project Lead.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={submitProject} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Project Name</label>
+                <input
+                  required
+                  value={projectForm.project_name}
+                  onChange={(event) => setProjectForm((form) => ({ ...form, project_name: event.target.value }))}
+                  placeholder="e.g. Q3 Hiring Initiative, HRMS Integration..."
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Project Manager (Lead)</label>
+                <select
+                  required
+                  value={projectForm.manager}
+                  onChange={(event) => setProjectForm((form) => ({ ...form, manager: event.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select manager</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.first_name} {employee.last_name || ''} ({employee.employee_id}) - {employee.job_title || 'Staff'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Start Date</label>
+                  <input
+                    required
+                    type="date"
+                    value={projectForm.start_date}
+                    onChange={(event) => setProjectForm((form) => ({ ...form, start_date: event.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">End Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={projectForm.end_date}
+                    onChange={(event) => setProjectForm((form) => ({ ...form, end_date: event.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                <select
+                  required
+                  value={projectForm.status}
+                  onChange={(event) => setProjectForm((form) => ({ ...form, status: event.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="PLANNING">Planning</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="ON_HOLD">On Hold</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProject}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center gap-2"
+                >
+                  {savingProject && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Create
                 </button>
               </div>
             </form>

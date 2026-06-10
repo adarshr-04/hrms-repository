@@ -15,8 +15,7 @@ import django
 django.setup()
 
 from django.db import transaction
-from employees.models import Employee
-from payroll.models import Payroll
+from employees.models import Employee, Payroll
 
 SALARY_MAP = {
     "sarah.j@enterprise.com": 150000.00,

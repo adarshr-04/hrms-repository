@@ -24,6 +24,11 @@ export const projectService = {
     return response.data;
   },
 
+  createProject: async (data: any) => {
+    const response = await api.post('/projects/projects/', data);
+    return response.data;
+  },
+
   getTaskLogs: async () => {
     const response = await api.get('/projects/task-logs/');
     return response.data;

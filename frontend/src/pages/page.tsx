@@ -604,88 +604,11 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Announcements Bulletin Board */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-indigo-650" />
-                Company Announcements
-              </h3>
-              {isHR && (
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Post Bulletin</span>
-                </button>
-              )}
-            </div>
 
-            {loadingAnnouncements ? (
-              <div className="py-8 flex justify-center items-center text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-                <span>Loading bulletins...</span>
-              </div>
-            ) : announcements.length === 0 ? (
-              <div className="text-center py-8 text-slate-550 border border-dashed border-slate-200 rounded-xl">
-                <Megaphone className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium">No announcements posted yet</p>
-                <p className="text-xs text-slate-450 mt-1">Keep an eye out for updates from HR.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {announcements.map((ann) => (
-                  <div
-                    key={ann.id}
-                    onClick={() => setSelectedAnnouncement(ann)}
-                    className="p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between hover:shadow-md group relative overflow-hidden"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                          ann.priority === 'LOW' ? 'bg-slate-55 border-slate-200 text-slate-600' :
-                          ann.priority === 'NORMAL' ? 'bg-blue-50 border-blue-200 text-blue-600' :
-                          ann.priority === 'HIGH' ? 'bg-amber-50 border-amber-200 text-amber-700' :
-                          'bg-rose-50 border-rose-300 text-rose-600 animate-pulse border-2'
-                        }`}>
-                          {ann.priority}
-                        </span>
-                        {isHR && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAnnouncement(ann.id);
-                            }}
-                            className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                          {ann.title}
-                        </h4>
-                        <p className="text-xs text-slate-500 line-clamp-2 mt-1">
-                          {ann.content}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3 text-[10px] font-medium text-slate-400">
-                      <span>By {ann.posted_by_name}</span>
-                      <span>{new Date(ann.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right Side: Shift Tap Terminal (takes 1 column) */}
-        <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between relative overflow-hidden group">
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group h-fit self-start">
           {/* Card abstract hover gradient */}
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-50 group-hover:scale-150 transition-transform duration-700" />
           
@@ -701,17 +624,65 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Live Ticking Clock */}
-            <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight mt-1 font-mono">
-                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </h2>
-              <div className="flex items-center justify-center gap-1 text-[10px] font-medium text-slate-400 mt-1.5">
-                <MapPin className="w-3 h-3 text-slate-300" /> Web Terminal IP: 192.168.1.45
-              </div>
+            {/* Action Buttons */}
+            <div className="relative z-10">
+              {tapStatus === 'OFFLINE' && (
+                <button
+                  disabled={isTapping}
+                  onClick={handleTap}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 group active:scale-[0.98]"
+                >
+                  {isTapping ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                      <span>Tap In</span>
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {tapStatus === 'TAPPED_IN' && (
+                <button
+                  disabled={isTapping}
+                  onClick={handleTap}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-rose-200 group active:scale-[0.98]"
+                >
+                  {isTapping ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      <span>Tap Out</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {tapStatus === 'TAPPED_OUT' && !isBefore6PM && (
+                <div className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Shift Closed (After 6:00 PM)</span>
+                </div>
+              )}
+
+              {tapStatus === 'TAPPED_OUT' && isBefore6PM && (
+                <button
+                  disabled={isTapping}
+                  onClick={handleTap}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-slate-200 group active:scale-[0.98]"
+                >
+                  {isTapping ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                      <span>Resume Shift ▶</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Status Messages */}
@@ -719,7 +690,7 @@ export default function DashboardPage() {
               {tapStatus === 'OFFLINE' && (
                 <>
                   <p className="text-xs font-black text-rose-500 uppercase tracking-widest">OFFLINE</p>
-                  <p className="text-[11px] font-medium text-slate-500 px-4">Tap In below to log your check-in time and start today's shift.</p>
+                  <p className="text-[11px] font-medium text-slate-500 px-4">Tap In to log your check-in time and start today's shift.</p>
                 </>
               )}
               {tapStatus === 'TAPPED_IN' && (
@@ -748,70 +719,87 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="mt-6 relative z-10">
-            {tapStatus === 'OFFLINE' && (
-              <button
-                disabled={isTapping}
-                onClick={handleTap}
-                className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 group active:scale-[0.98]"
-              >
-                {isTapping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                    <span>Tap In</span>
-                  </>
-                )}
-              </button>
-            )}
-            
-            {tapStatus === 'TAPPED_IN' && (
-              <button
-                disabled={isTapping}
-                onClick={handleTap}
-                className="w-full flex items-center justify-center gap-3 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-rose-200 group active:scale-[0.98]"
-              >
-                {isTapping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                    <span>Tap Out</span>
-                  </>
-                )}
-              </button>
-            )}
-
-            {tapStatus === 'TAPPED_OUT' && !isBefore6PM && (
-              <div className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Shift Closed (After 6:00 PM)</span>
-              </div>
-            )}
-
-            {tapStatus === 'TAPPED_OUT' && isBefore6PM && (
-              <button
-                disabled={isTapping}
-                onClick={handleTap}
-                className="w-full flex items-center justify-center gap-3 py-4 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-slate-200 group active:scale-[0.98]"
-              >
-                {isTapping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                    <span>Resume Shift ▶</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
         </div>
 
+      </div>
+
+      {/* Announcements Bulletin Board (Moved to full width) */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-indigo-650" />
+            Company Announcements
+          </h3>
+          {isHR && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Post Bulletin</span>
+            </button>
+          )}
+        </div>
+
+        {loadingAnnouncements ? (
+          <div className="py-8 flex justify-center items-center text-slate-400 gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+            <span>Loading bulletins...</span>
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="text-center py-8 text-slate-550 border border-dashed border-slate-200 rounded-xl">
+            <Megaphone className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-medium">No announcements posted yet</p>
+            <p className="text-xs text-slate-450 mt-1">Keep an eye out for updates from HR.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {announcements.map((ann) => (
+              <div
+                key={ann.id}
+                onClick={() => setSelectedAnnouncement(ann)}
+                className="p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between hover:shadow-md group relative overflow-hidden"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                      ann.priority === 'LOW' ? 'bg-slate-55 border-slate-200 text-slate-600' :
+                      ann.priority === 'NORMAL' ? 'bg-blue-50 border-blue-200 text-blue-600' :
+                      ann.priority === 'HIGH' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                      'bg-rose-50 border-rose-300 text-rose-600 animate-pulse border-2'
+                    }`}>
+                      {ann.priority}
+                    </span>
+                    {isHR && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAnnouncement(ann.id);
+                        }}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                      {ann.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                      {ann.content}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3 text-[10px] font-medium text-slate-400">
+                  <span>By {ann.posted_by_name}</span>
+                  <span>{new Date(ann.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Interactive Filters Panel */}

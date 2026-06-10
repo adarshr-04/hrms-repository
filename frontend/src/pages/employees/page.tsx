@@ -221,11 +221,17 @@ function EmployeeCard({ emp, getAvatarUrl, isAdmin }: any) {
       {/* Top: Name & Status */}
       <div className="flex justify-between items-start mb-6">
         <div className="text-left flex-1 min-w-0 pr-2">
-          <Link to={`/employees/details?id=${emp.id}`} className="block">
-            <h3 className="font-black text-slate-900 text-sm truncate group-hover:text-indigo-600 transition-colors">
+          {isAdmin ? (
+            <Link to={`/employees/details?id=${emp.id}`} className="block">
+              <h3 className="font-black text-slate-900 text-sm truncate group-hover:text-indigo-600 transition-colors">
+                {emp.first_name} {emp.last_name}
+              </h3>
+            </Link>
+          ) : (
+            <h3 className="font-black text-slate-900 text-sm truncate">
               {emp.first_name} {emp.last_name}
             </h3>
-          </Link>
+          )}
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate mt-0.5">{emp.job_title || 'New Member'}</p>
         </div>
         <span className={cn(
@@ -237,17 +243,31 @@ function EmployeeCard({ emp, getAvatarUrl, isAdmin }: any) {
       </div>
 
       {/* Middle: Avatar */}
-      <Link to={`/employees/details?id=${emp.id}`} className="mb-6 flex justify-center relative">
-        <div className="w-24 h-24 rounded-full p-1 bg-white border border-slate-100 shadow-sm group-hover:border-indigo-100 transition-colors">
-          <div className="w-full h-full rounded-full overflow-hidden bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-2xl uppercase">
-            {emp.avatar ? (
-              <img src={getAvatarUrl(emp.avatar)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-            ) : (
-              <span>{emp.first_name[0]}{emp.last_name ? emp.last_name[0] : ''}</span>
-            )}
+      {isAdmin ? (
+        <Link to={`/employees/details?id=${emp.id}`} className="mb-6 flex justify-center relative">
+          <div className="w-24 h-24 rounded-full p-1 bg-white border border-slate-100 shadow-sm group-hover:border-indigo-100 transition-colors">
+            <div className="w-full h-full rounded-full overflow-hidden bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-2xl uppercase">
+              {emp.avatar ? (
+                <img src={getAvatarUrl(emp.avatar)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              ) : (
+                <span>{emp.first_name[0]}{emp.last_name ? emp.last_name[0] : ''}</span>
+              )}
+            </div>
+          </div>
+        </Link>
+      ) : (
+        <div className="mb-6 flex justify-center relative">
+          <div className="w-24 h-24 rounded-full p-1 bg-white border border-slate-100 shadow-sm">
+            <div className="w-full h-full rounded-full overflow-hidden bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-2xl uppercase">
+              {emp.avatar ? (
+                <img src={getAvatarUrl(emp.avatar)} className="w-full h-full object-cover" />
+              ) : (
+                <span>{emp.first_name[0]}{emp.last_name ? emp.last_name[0] : ''}</span>
+              )}
+            </div>
           </div>
         </div>
-      </Link>
+      )}
 
       {/* Email */}
       <p className="text-[11px] font-medium text-slate-400 mb-6 text-center truncate px-2">{emp.email}</p>

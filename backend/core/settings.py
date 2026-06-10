@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-p)56=220m5g@l+jrd=)nx#xp@gv_bbids7u@2_n-%%tp45)w'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False             # Set to False in production and True in development.
+DEBUG = True             # Set to False in production and True in development.
 
 #ALLOWED_HOSTS = ['3.111.31.237', 'hrmspirlanta.ai', 'www.hrmspirlanta.ai', '127.0.0.1', 'localhost']
 ALLOWED_HOSTS = ['3.111.31.237', "127.0.0.1", "localhost"]  # Update with your actual domain names in production.
@@ -41,17 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_filters',
-    # HRMS Apps
-    'accounts',
+    # HRMS – single consolidated app
     'employees',
-    'attendance',
-    'leaves',
-    'payroll',
-    'performance',
-    'recruitment',
-    'training',
-    'projects',
-    'reports',
 ]
 
 MIDDLEWARE = [
@@ -176,6 +167,9 @@ SIMPLE_JWT = {
 }
 
 AUTHENTICATION_BACKENDS = [
-    'accounts.backends.EmailOrUsernameModelBackend',
+    'employees.backends.EmailOrUsernameModelBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Email Configuration for Development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

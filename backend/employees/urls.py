@@ -18,7 +18,6 @@ from .views import (
     # Attendance
     ShiftViewSet,
     AttendanceViewSet,
-    AttendanceRequestViewSet,
     # Leave
     LeaveViewSet,
     # Payroll
@@ -57,7 +56,6 @@ router.register(r'accounts/announcements', AnnouncementViewSet,  basename='annou
 # ── /api/attendance/* ─────────────────────────────────────
 router.register(r'attendance/attendance', AttendanceViewSet)
 router.register(r'attendance/shifts',     ShiftViewSet)
-router.register(r'attendance/requests',   AttendanceRequestViewSet)
 
 # ── /api/leaves/* ─────────────────────────────────────────
 router.register(r'leaves/leaves', LeaveViewSet)

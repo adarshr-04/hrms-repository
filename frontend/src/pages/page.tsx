@@ -26,10 +26,7 @@ import {
   Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend
-} from 'recharts';
+
 import { employeeService } from '@/services/employeeService';
 import { attendanceService } from '@/services/attendanceService';
 import { payrollService } from '@/services/payrollService';
@@ -47,8 +44,6 @@ export default function DashboardPage() {
   const { user, isAdmin, isManager, isHR } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any[]>([]);
-  const [deptData, setDeptData] = useState<any[]>([]);
-  const [attendanceTrend, setAttendanceTrend] = useState<any[]>([]);
   
   // Dynamic client-side filter states
   const [rawEmployees, setRawEmployees] = useState<any[]>([]);
@@ -56,8 +51,6 @@ export default function DashboardPage() {
   const [rawLeaves, setRawLeaves] = useState<any[]>([]);
   const [rawProjects, setRawProjects] = useState<any[]>([]);
   const [rawEnrollments, setRawEnrollments] = useState<any[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
-  const [selectedDept, setSelectedDept] = useState<string>('ALL');
 
   // Announcement States
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -84,7 +77,7 @@ export default function DashboardPage() {
   const [userLng, setUserLng] = useState<number | null>(null);
   const [insideZone, setInsideZone] = useState<boolean | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
-  const isBefore6PM = currentTime.getHours() < 18;
+
 
   // Office zone config (must match Attendance page)
   const OFFICE_LAT = 12.906245151822224;
@@ -199,13 +192,9 @@ export default function DashboardPage() {
       let diffMs = currentTime.getTime() - checkInDate.getTime();
       if (diffMs < 0) diffMs = 0;
 
-      // Add previously logged work hours (for resumed shifts)
-      const previousMs = Number(tapRecord.work_hours || 0) * 3600000;
-      const totalMs = diffMs + previousMs;
-
-      const hrs = Math.floor(totalMs / 3600000);
-      const mins = Math.floor((totalMs % 3600000) / 60000);
-      const secs = Math.floor((totalMs % 60000) / 1000);
+      const hrs = Math.floor(diffMs / 3600000);
+      const mins = Math.floor((diffMs % 3600000) / 60000);
+      const secs = Math.floor((diffMs % 60000) / 1000);
 
       const pad = (num: number) => String(num).padStart(2, '0');
       return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
@@ -280,101 +269,25 @@ export default function DashboardPage() {
     if (loading) return;
 
     if (isAdmin || isManager) {
-      const employeeDeptMap = new Map();
-      rawEmployees.forEach((emp: any) => {
-        employeeDeptMap.set(emp.id, emp.department_name || 'Unassigned');
-      });
-
-      // Filter employees by department
-      let filteredEmpList = rawEmployees;
-      if (selectedDept !== 'ALL') {
-        filteredEmpList = rawEmployees.filter((e: any) => (e.department_name || 'Unassigned') === selectedDept);
-      }
-
-      // Filter attendance by department and month
-      let filteredAttendanceList = rawAttendance;
-      if (selectedDept !== 'ALL') {
-        filteredAttendanceList = filteredAttendanceList.filter((a: any) => {
-          const dept = employeeDeptMap.get(a.employee) || 'Unassigned';
-          return dept === selectedDept;
-        });
-      }
-      if (selectedMonth !== 'ALL') {
-        filteredAttendanceList = filteredAttendanceList.filter((a: any) => {
-          if (!a.attendance_date) return false;
-          const month = a.attendance_date.split('-')[1]; // YYYY-MM-DD
-          return Number(month) === Number(selectedMonth);
-        });
-      }
-
-      // Filter leaves by department
-      let filteredLeavesList = rawLeaves;
-      if (selectedDept !== 'ALL') {
-        filteredLeavesList = rawLeaves.filter((l: any) => {
-          const dept = employeeDeptMap.get(l.employee) || 'Unassigned';
-          return dept === selectedDept;
-        });
-      }
-
       // Dynamic stats calculation
-      const totalEmployees = filteredEmpList.length;
+      const totalEmployees = rawEmployees.length;
       const todayStr = new Date().toISOString().split('T')[0];
-      const todayAttendance = filteredAttendanceList.filter((a: any) => a.attendance_date === todayStr && a.status !== 'ABSENT');
+      const todayAttendance = rawAttendance.filter((a: any) => a.attendance_date === todayStr && a.status !== 'ABSENT');
       const presentCount = todayAttendance.length;
 
-      const pendingLeavesCount = filteredLeavesList.filter((l: any) => l.status === 'PENDING').length;
+      const pendingLeavesCount = rawLeaves.filter((l: any) => l.status === 'PENDING').length;
       const activeProjectsCount = rawProjects.filter((p: any) => p.status === 'IN_PROGRESS' || p.status === 'PLANNING').length;
 
       setStats([
-        { name: 'Total Employees', value: totalEmployees, change: `+${filteredEmpList.filter((e: any) => e.status === 'ACTIVE').length} Active`, trend: 'up', icon: Users, color: 'bg-blue-500' },
+        { name: 'Total Employees', value: totalEmployees, change: `+${rawEmployees.filter((e: any) => e.status === 'ACTIVE').length} Active`, trend: 'up', icon: Users, color: 'bg-blue-500' },
         { name: 'Present Today', value: presentCount, change: `${totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0}% Rate`, trend: 'up', icon: Calendar, color: 'bg-emerald-500' },
-        { name: 'Pending Leaves', value: pendingLeavesCount, change: `${filteredLeavesList.filter((l: any) => l.status === 'APPROVED').length} Approved`, trend: pendingLeavesCount > 0 ? 'up' : 'down', icon: Clock, color: 'bg-amber-500' },
+        { name: 'Pending Leaves', value: pendingLeavesCount, change: `${rawLeaves.filter((l: any) => l.status === 'APPROVED').length} Approved`, trend: pendingLeavesCount > 0 ? 'up' : 'down', icon: Clock, color: 'bg-amber-500' },
         { name: 'Active Projects', value: activeProjectsCount, change: `${rawProjects.filter((p: any) => p.status === 'COMPLETED').length} Done`, trend: 'up', icon: Briefcase, color: 'bg-indigo-500' },
       ]);
-
-      // Department breakdowns
-      const depts = filteredEmpList.reduce((acc: any, curr: any) => {
-        const name = curr.department_name || 'Unassigned';
-        acc[name] = (acc[name] || 0) + 1;
-        return acc;
-      }, {});
-      setDeptData(Object.keys(depts).map(name => ({ name, value: depts[name] })));
-
-      // Real historical attendance trends (dynamic last 5 days)
-      const uniqueDates = Array.from(new Set(filteredAttendanceList.map((a: any) => a.attendance_date)))
-        .sort()
-        .slice(-5);
-
-      const trendData = uniqueDates.map(dateStr => {
-        const dateObj = new Date(dateStr as string);
-        const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-        const dayLogs = filteredAttendanceList.filter((a: any) => a.attendance_date === dateStr);
-        const presentLogs = dayLogs.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE' || a.status === 'HALF_DAY');
-        const percentage = dayLogs.length > 0 ? Math.round((presentLogs.length / dayLogs.length) * 100) : 0;
-        return { name: dayName, present: percentage };
-      });
-
-      const finalTrend = trendData.length >= 2 ? trendData : [
-        { name: 'Mon', present: 92 },
-        { name: 'Tue', present: 95 },
-        { name: 'Wed', present: 98 },
-        { name: 'Thu', present: 94 },
-        { name: 'Fri', present: 96 },
-      ];
-      setAttendanceTrend(finalTrend);
     } else {
       // Personal Employee dashboard
-      let filteredAttendance = rawAttendance;
-      if (selectedMonth !== 'ALL') {
-        filteredAttendance = rawAttendance.filter((a: any) => {
-          if (!a.attendance_date) return false;
-          const month = a.attendance_date.split('-')[1];
-          return Number(month) === Number(selectedMonth);
-        });
-      }
-
-      const presentLogs = filteredAttendance.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE' || a.status === 'HALF_DAY').length;
-      const totalLogs = filteredAttendance.length;
+      const presentLogs = rawAttendance.filter((a: any) => a.status === 'PRESENT' || a.status === 'LATE' || a.status === 'HALF_DAY').length;
+      const totalLogs = rawAttendance.length;
       const attendanceRate = totalLogs > 0 ? Math.round((presentLogs / totalLogs) * 100) : 100;
 
       let baseLeaveDays = 24;
@@ -406,24 +319,8 @@ export default function DashboardPage() {
         { name: 'My Projects', value: `${activeProjectsCount} Active`, change: 'Assigned initiatives', trend: 'up', icon: Briefcase, color: 'bg-indigo-500' },
         { name: 'Training Progress', value: `${trainingRate}%`, change: `${completedEnrollments}/${totalEnrollments} Completed`, trend: 'up', icon: GraduationCap, color: 'bg-blue-500' },
       ]);
-
-      const trendData = filteredAttendance
-        .slice(-5)
-        .map((log: any) => {
-          const dayName = new Date(log.attendance_date).toLocaleDateString('en-US', { weekday: 'short' });
-          return { name: dayName, present: log.status === 'PRESENT' || log.status === 'LATE' || log.status === 'HALF_DAY' ? 100 : 0 };
-        });
-
-      const finalTrend = trendData.length >= 2 ? trendData : [
-        { name: 'Mon', present: 100 },
-        { name: 'Tue', present: 100 },
-        { name: 'Wed', present: 100 },
-        { name: 'Thu', present: 100 },
-        { name: 'Fri', present: 100 },
-      ];
-      setAttendanceTrend(finalTrend);
     }
-  }, [rawEmployees, rawAttendance, rawLeaves, rawProjects, rawEnrollments, selectedMonth, selectedDept, loading, isAdmin, isManager]);
+  }, [rawEmployees, rawAttendance, rawLeaves, rawProjects, rawEnrollments, loading, isAdmin, isManager]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -434,7 +331,7 @@ export default function DashboardPage() {
   const handleTap = async () => {
     const empId = user?.employee_profile_id;
     if (!empId) {
-      toast.error("Employee profile not found. Attendance cannot be logged.");
+      // Admin/manager without a personal employee profile — silently ignore
       return;
     }
 
@@ -460,23 +357,7 @@ export default function DashboardPage() {
         setTapStatus('TAPPED_IN');
         if (insideZone !== false) toast.success('Tapped In! Shift started.');
 
-      } else if (tapStatus === 'TAPPED_OUT') {
-        // Resume Shift — only before 6 PM
-        if (!isBefore6PM) {
-          toast.error('Resuming shifts is only allowed before 6:00 PM.');
-          setIsTapping(false);
-          return;
-        }
-        if (insideZone === false) {
-          toast.warning('⚠️ You are outside the office zone. Resuming shift anyway.', { duration: 5000 });
-        }
-        const record = await attendanceService.updateAttendance(tapRecord!.id, {
-          check_in: timeStr, check_out: null,
-          notes: `${tapRecord?.notes || ''}\nResumed shift via Dashboard at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
-        });
-        setTapRecord(record);
-        setTapStatus('TAPPED_IN');
-        if (insideZone !== false) toast.success('Shift resumed!');
+
 
       } else if (tapStatus === 'TAPPED_IN') {
         // Tap Out — warn if outside zone but always allow
@@ -607,118 +488,132 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* Right Side: Shift Tap Terminal (takes 1 column) */}
+        {/* Right Side: Shift Tap Terminal OR Admin Info Card */}
         <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group h-fit self-start">
-          {/* Card abstract hover gradient */}
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-50 group-hover:scale-150 transition-transform duration-700" />
-          
-          <div className="space-y-6 relative z-10">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <Fingerprint className="w-5 h-5 text-indigo-600" />
-                Shift Attendance
-              </h3>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-slate-50 text-slate-500 border-slate-100">
-                <Wifi className="w-3 h-3 text-emerald-500 animate-pulse" />
-                Online
+
+          {user?.employee_profile_id ? (
+            /* ── Personal Tap Terminal (employee has a linked profile) ── */
+            <div className="space-y-6 relative z-10">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <Fingerprint className="w-5 h-5 text-indigo-600" />
+                  Shift Attendance
+                </h3>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-slate-50 text-slate-500 border-slate-100">
+                  <Wifi className="w-3 h-3 text-emerald-500 animate-pulse" />
+                  Online
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="relative z-10">
+                {tapStatus === 'OFFLINE' && (
+                  <button
+                    disabled={isTapping}
+                    onClick={handleTap}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 group active:scale-[0.98]"
+                  >
+                    {isTapping ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                        <span>Tap In</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {tapStatus === 'TAPPED_IN' && (
+                  <button
+                    disabled={isTapping}
+                    onClick={handleTap}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-rose-200 group active:scale-[0.98]"
+                  >
+                    {isTapping ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                        <span>Tap Out</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {tapStatus === 'TAPPED_OUT' && (
+                  <div className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>Shift Completed</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Messages */}
+              <div className="text-center space-y-1">
+                {tapStatus === 'OFFLINE' && (
+                  <>
+                    <p className="text-xs font-black text-rose-500 uppercase tracking-widest">OFFLINE</p>
+                    <p className="text-[11px] font-medium text-slate-500 px-4">Tap In to log your check-in time and start today's shift.</p>
+                  </>
+                )}
+                {tapStatus === 'TAPPED_IN' && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-black text-emerald-500 uppercase tracking-widest animate-pulse">ACTIVE &amp; TAPPED IN</p>
+                    <p className="text-[11px] font-medium text-slate-500 px-4">
+                      Shift started at <span className="font-bold text-slate-800">{tapRecord?.check_in || '--:--'}</span>.
+                    </p>
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3.5 text-center mt-3 animate-pulse">
+                      <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Active Shift Stopwatch</p>
+                      <h4 className="text-xl font-black text-indigo-900 font-mono tracking-wider mt-1">
+                        {getRunningDuration()}
+                      </h4>
+                    </div>
+                  </div>
+                )}
+                {tapStatus === 'TAPPED_OUT' && (
+                  <>
+                    <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">SHIFT COMPLETED</p>
+                    <p className="text-[11px] font-medium text-slate-500 px-4">
+                      Logged <span className="font-bold text-slate-800">{tapRecord?.work_hours ? Number(tapRecord.work_hours).toFixed(2) : 0}h</span> of work today. See you tomorrow!
+                    </p>
+                  </>
+                )}
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="relative z-10">
-              {tapStatus === 'OFFLINE' && (
-                <button
-                  disabled={isTapping}
-                  onClick={handleTap}
-                  className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 group active:scale-[0.98]"
-                >
-                  {isTapping ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                      <span>Tap In</span>
-                    </>
-                  )}
-                </button>
-              )}
-              
-              {tapStatus === 'TAPPED_IN' && (
-                <button
-                  disabled={isTapping}
-                  onClick={handleTap}
-                  className="w-full flex items-center justify-center gap-3 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-rose-200 group active:scale-[0.98]"
-                >
-                  {isTapping ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                      <span>Tap Out</span>
-                    </>
-                  )}
-                </button>
-              )}
-
-              {tapStatus === 'TAPPED_OUT' && !isBefore6PM && (
-                <div className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm">
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>Shift Closed (After 6:00 PM)</span>
+          ) : (
+            /* ── Admin Info Card (no personal employee profile linked) ── */
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <Fingerprint className="w-5 h-5 text-indigo-600" />
+                  Shift Attendance
+                </h3>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-indigo-50 text-indigo-600 border-indigo-100">
+                  Admin
                 </div>
-              )}
-
-              {tapStatus === 'TAPPED_OUT' && isBefore6PM && (
-                <button
-                  disabled={isTapping}
-                  onClick={handleTap}
-                  className="w-full flex items-center justify-center gap-3 py-4 bg-slate-700 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-slate-200 group active:scale-[0.98]"
-                >
-                  {isTapping ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                      <span>Resume Shift ▶</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Status Messages */}
-            <div className="text-center space-y-1">
-              {tapStatus === 'OFFLINE' && (
-                <>
-                  <p className="text-xs font-black text-rose-500 uppercase tracking-widest">OFFLINE</p>
-                  <p className="text-[11px] font-medium text-slate-500 px-4">Tap In to log your check-in time and start today's shift.</p>
-                </>
-              )}
-              {tapStatus === 'TAPPED_IN' && (
-                <div className="space-y-3">
-                  <p className="text-xs font-black text-emerald-500 uppercase tracking-widest animate-pulse">ACTIVE & TAPPED IN</p>
-                  <p className="text-[11px] font-medium text-slate-500 px-4">
-                    Shift started at <span className="font-bold text-slate-800">{tapRecord?.check_in || '--:--'}</span>.
-                  </p>
-                  
-                  {/* Live Shift Stopwatch */}
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3.5 text-center mt-3 animate-pulse">
-                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Active Shift Stopwatch</p>
-                    <h4 className="text-xl font-black text-indigo-900 font-mono tracking-wider mt-1">
-                      {getRunningDuration()}
-                    </h4>
-                  </div>
+              </div>
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center">
+                  <Fingerprint className="w-7 h-7 text-indigo-400" />
                 </div>
-              )}
-              {tapStatus === 'TAPPED_OUT' && (
-                <>
-                  <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">{isBefore6PM ? 'SHIFT PAUSED' : 'SHIFT COMPLETED'}</p>
-                  <p className="text-[11px] font-medium text-slate-500 px-4">
-                    Logged <span className="font-bold text-slate-800">{tapRecord?.work_hours ? Number(tapRecord.work_hours).toFixed(2) : 0}h</span> of work today.{isBefore6PM ? ' Resume anytime before 6 PM.' : ' See you tomorrow!'}
+                <div>
+                  <p className="text-sm font-bold text-slate-700">No employee profile linked</p>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed max-w-[200px]">
+                    Your admin account is not linked to an employee profile. Tap In/Out is only available for employees.
                   </p>
-                </>
-              )}
+                </div>
+                <a
+                  href="/employees"
+                  className="mt-1 text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Manage Employees
+                </a>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
       </div>
@@ -802,117 +697,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Interactive Filters Panel */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Analytics & Metrics Control</h3>
-          <p className="text-xs text-slate-400 font-semibold mt-0.5">Filter data dynamically in real-time across charts and counters.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Month Selector */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-250 rounded-xl px-3 py-1.5 shadow-sm">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Month</span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent border-none text-xs font-bold text-slate-700 outline-none cursor-pointer"
-            >
-              <option value="ALL">All Months</option>
-              <option value="01">January</option>
-              <option value="02">February</option>
-              <option value="03">March</option>
-              <option value="04">April</option>
-              <option value="05">May</option>
-              <option value="06">June</option>
-              <option value="07">July</option>
-              <option value="08">August</option>
-              <option value="09">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
-          </div>
 
-          {/* Department Selector */}
-          {(isAdmin || isManager) && (
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-250 rounded-xl px-3 py-1.5 shadow-sm">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dept</span>
-              <select
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                className="bg-transparent border-none text-xs font-bold text-slate-700 outline-none cursor-pointer"
-              >
-                <option value="ALL">All Departments</option>
-                {Array.from(new Set(rawEmployees.map((e: any) => e.department_name).filter(Boolean))).map((dept: any) => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Attendance Trend */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-indigo-650" />
-            Weekly Attendance Flow
-          </h3>
-          <div className="h-[300px] w-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={attendanceTrend}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="present"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  dot={{ fill: '#4f46e5', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Department Breakdown */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" />
-            Department Distribution
-          </h3>
-          <div className="h-[300px] w-full min-h-[300px] flex items-center justify-center">
-            {deptData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={deptData}
-                    innerRadius={80}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {deptData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-slate-400 text-sm italic">No department data available</div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Announcement Details Modal */}
       {selectedAnnouncement && (

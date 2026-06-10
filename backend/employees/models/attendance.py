@@ -40,29 +40,3 @@ class Attendance(BaseModel):
     def __str__(self):
         return f"{self.employee.employee_id} - {self.attendance_date}"
 
-
-class AttendanceRequest(BaseModel):
-    REQUEST_TYPE_CHOICES = [
-        ('CORRECTION', 'Correction'),
-        ('MISSING_OUT', 'Missing Check-Out'),
-    ]
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('APPROVED', 'Approved'),
-        ('REJECTED', 'Rejected'),
-    ]
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_requests')
-    attendance_date = models.DateField()
-    request_type = models.CharField(max_length=20, choices=REQUEST_TYPE_CHOICES, default='CORRECTION')
-    check_in = models.TimeField(null=True, blank=True)
-    check_out = models.TimeField(null=True, blank=True)
-    reason = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
-    reviewed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_attendance_requests')
-    review_notes = models.TextField(blank=True, null=True)
-
-    class Meta:
-        db_table = 'attendance_attendancerequest'
-
-    def __str__(self):
-        return f"{self.request_type} - {self.employee} - {self.status}"

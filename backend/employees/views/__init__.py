@@ -1,6 +1,6 @@
 from .employee import IsHROrAdminOrReadOnly, DepartmentViewSet, EmployeeViewSet, DocumentViewSet
 from .accounts import ProfileView, ChangePasswordView, NotificationViewSet, ForgotPasswordView, ResetPasswordView, AnnouncementViewSet, VerifyInviteTokenView, ActivateAccountView
-from .attendance import ShiftViewSet, AttendanceViewSet, AttendanceRequestViewSet
+from .attendance import ShiftViewSet, AttendanceViewSet
 from .leave import LeaveViewSet
 from .payroll import PayrollViewSet
 from .project import IsHROrAdmin, IsHROrAdminOrManager, ProjectViewSet, ProjectAssignmentViewSet, TaskLogViewSet
@@ -12,7 +12,7 @@ __all__ = [
     'IsHROrAdminOrReadOnly', 'DepartmentViewSet', 'EmployeeViewSet', 'DocumentViewSet',
     'ProfileView', 'ChangePasswordView', 'NotificationViewSet', 'ForgotPasswordView', 'ResetPasswordView', 'AnnouncementViewSet',
     'VerifyInviteTokenView', 'ActivateAccountView',
-    'ShiftViewSet', 'AttendanceViewSet', 'AttendanceRequestViewSet',
+    'ShiftViewSet', 'AttendanceViewSet',
     'LeaveViewSet',
     'PayrollViewSet',
     'IsHROrAdmin', 'IsHROrAdminOrManager', 'ProjectViewSet', 'ProjectAssignmentViewSet', 'TaskLogViewSet',

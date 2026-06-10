@@ -45,7 +45,7 @@ import { useAuth } from '@/context/AuthContext';
 
 
 export default function EmployeeProfilePage() {
-  const { isHR, loading: authLoading } = useAuth();
+  const { isHR, loading: authLoading, user } = useAuth();
   const [searchParams] = useSearchParams();
   const id = searchParams.get('id');
   const navigate = useNavigate();
@@ -161,25 +161,39 @@ export default function EmployeeProfilePage() {
     setLoading(true);
     try {
       if (!id) return;
-      const [empData, attData, leaveData, payData, perfData, trainData, docsData] = await Promise.all([
-        employeeService.getById(id as string),
-        attendanceService.getAll({ employee: id }),
-        leaveService.getAll({ employee: id }),
-        payrollService.getAll({ employee: id }),
-        performanceService.getAll({ employee: id }),
-        trainingService.getEnrollments({ employee: id }),
-        documentService.getByEmployee(Number(id))
-      ]);
+
+      // Fetch the core employee record — this must succeed
+      const empData = await employeeService.getById(id as string);
       setEmployee(empData);
-      setAttendance(attData.results || attData || []);
-      setLeaves(leaveData.results || leaveData || []);
-      setPayroll(payData.results || payData || []);
-      setPerformance(perfData.results || perfData || []);
-      setTrainings(trainData.results || trainData || []);
-      setDocuments(Array.isArray(docsData) ? docsData : []);
+
+      // Fetch supplementary data — failures are non-fatal, default to []
+      const [attResult, leaveResult, payResult, perfResult, trainResult, docsResult] =
+        await Promise.allSettled([
+          attendanceService.getAll({ employee: id }),
+          leaveService.getAll({ employee: id }),
+          payrollService.getAll({ employee: id }),
+          performanceService.getAll({ employee: id }),
+          trainingService.getEnrollments({ employee: id }),
+          documentService.getByEmployee(Number(id)),
+        ]);
+
+      const safe = (result: PromiseSettledResult<any>, key?: string): any[] => {
+        if (result.status === 'fulfilled') {
+          const val = key ? result.value?.[key] ?? result.value : result.value;
+          return Array.isArray(val) ? val : (val?.results ?? []);
+        }
+        return [];
+      };
+
+      setAttendance(safe(attResult));
+      setLeaves(safe(leaveResult));
+      setPayroll(safe(payResult));
+      setPerformance(safe(perfResult));
+      setTrainings(safe(trainResult));
+      setDocuments(docsResult.status === 'fulfilled' && Array.isArray(docsResult.value) ? docsResult.value : []);
     } catch (error) {
       console.error("Failed to fetch employee details", error);
-      toast.error("Employee profile not found");
+      toast.error("Failed to load employee details. Please try again.");
       navigate('/employees');
     } finally {
       setLoading(false);
@@ -187,15 +201,19 @@ export default function EmployeeProfilePage() {
   };
 
   useEffect(() => {
-    if (!authLoading && !isHR) {
+    // Only fire after auth has fully resolved AND user is set to prevent race condition on mount
+    if (!authLoading && !!user && !isHR) {
       toast.error("Access denied. Only HR and Admins can view employee profiles.");
       navigate('/employees');
     }
-  }, [isHR, authLoading, navigate]);
+  }, [isHR, authLoading, user, navigate]);
 
   useEffect(() => {
     if (id && isHR) {
       fetchEmployee();
+    } else if (!id && isHR) {
+      // No id param — redirect cleanly without error toast
+      navigate('/employees');
     }
   }, [id, isHR]);
 
@@ -269,7 +287,7 @@ export default function EmployeeProfilePage() {
     return path.split('/').pop() || 'file';
   };
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && isHR)) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-slate-200" />

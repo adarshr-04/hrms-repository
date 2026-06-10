@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Department, Employee, Document,
     Role, UserRole, Notification, PasswordResetCode, Announcement,
-    Shift, Attendance, AttendanceRequest,
+    Shift, Attendance,
     Leave,
     Payroll,
     Project, ProjectAssignment, TaskLog,
@@ -103,10 +103,7 @@ class AttendanceAdmin(admin.ModelAdmin):
     search_fields = ('employee__first_name', 'employee__last_name')
 
 
-@admin.register(AttendanceRequest)
-class AttendanceRequestAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'attendance_date', 'request_type', 'status', 'created_at')
-    list_filter = ('status', 'request_type')
+
 
 
 # ── Leave ─────────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from employees.models import Attendance, Shift, AttendanceRequest
+from employees.models import Attendance, Shift
 
 
 class ShiftSerializer(serializers.ModelSerializer):
@@ -13,13 +13,4 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Attendance
-        fields = '__all__'
-
-
-class AttendanceRequestSerializer(serializers.ModelSerializer):
-    employee_name = serializers.ReadOnlyField(source='employee.get_full_name')
-    reviewed_by_name = serializers.ReadOnlyField(source='reviewed_by.get_full_name')
-
-    class Meta:
-        model = AttendanceRequest
         fields = '__all__'

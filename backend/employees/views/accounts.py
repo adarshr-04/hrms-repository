@@ -14,6 +14,51 @@ class ProfileView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        user = request.user
+        
+        # Dynamically auto-create/link Employee profile and ADMIN role for superuser/staff on profile fetch
+        if (user.is_superuser or user.is_staff) and (not hasattr(user, 'employee_profile') or user.employee_profile is None):
+            try:
+                email = user.email or f"{user.username}@admin.local"
+                
+                # Check if an Employee with this email already exists but is not linked
+                emp = Employee.objects.filter(email=email).first()
+                if emp and emp.user is None:
+                    emp.user = user
+                    emp.save()
+                elif not emp:
+                    first_name = user.first_name or user.username.capitalize()
+                    last_name = user.last_name or 'Admin'
+                    emp = Employee.objects.create(
+                        user=user,
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=email,
+                        status='ACTIVE',
+                    )
+                else:
+                    first_name = user.first_name or user.username.capitalize()
+                    last_name = user.last_name or 'Admin'
+                    unique_email = f"{user.username}_admin@admin.local"
+                    emp = Employee.objects.create(
+                        user=user,
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=unique_email,
+                        status='ACTIVE',
+                    )
+                
+                # Assign ADMIN role
+                try:
+                    admin_role, _ = Role.objects.get_or_create(role_name='ADMIN')
+                    UserRole.objects.get_or_create(
+                        employee=emp, role=admin_role
+                    )
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"Error dynamically creating superuser profile: {e}")
+
         serializer = UserSerializer(request.user)
         data = serializer.data
         try:

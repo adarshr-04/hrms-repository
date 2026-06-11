@@ -18,6 +18,57 @@ def get_hr_and_admin_users():
     return recipients
 
 
+@receiver(post_save, sender=User)
+def create_superuser_employee_profile(sender, instance, created, **kwargs):
+    """
+    Ensure every superuser or staff user has an Employee profile and ADMIN role.
+    """
+    if instance.is_superuser or instance.is_staff:
+        from employees.models import Employee, Role, UserRole
+        
+        # Check if Employee already exists for this user
+        if not hasattr(instance, 'employee_profile') or instance.employee_profile is None:
+            email = instance.email or f"{instance.username}@admin.local"
+            
+            # Check if an Employee with this email already exists but is not linked
+            emp = Employee.objects.filter(email=email).first()
+            if emp and emp.user is None:
+                emp.user = instance
+                emp.save()
+            elif not emp:
+                first_name = instance.first_name or instance.username.capitalize()
+                last_name = instance.last_name or 'Admin'
+                emp = Employee.objects.create(
+                    user=instance,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    status='ACTIVE',
+                )
+            else:
+                # If an Employee with the same email exists but is linked to another user,
+                # create a new Employee with a unique email.
+                first_name = instance.first_name or instance.username.capitalize()
+                last_name = instance.last_name or 'Admin'
+                unique_email = f"{instance.username}_admin@admin.local"
+                emp = Employee.objects.create(
+                    user=instance,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=unique_email,
+                    status='ACTIVE',
+                )
+            
+            # Assign ADMIN role
+            try:
+                admin_role, _ = Role.objects.get_or_create(role_name='ADMIN')
+                UserRole.objects.get_or_create(
+                    employee=emp, role=admin_role
+                )
+            except Exception as e:
+                print(f"Error assigning admin role in user post_save signal: {e}")
+
+
 @receiver(post_save, sender='employees.Notification')
 def notification_created(sender, instance, created, **kwargs):
     # Stub for future extensions (websockets, etc.)

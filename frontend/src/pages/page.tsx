@@ -357,7 +357,19 @@ export default function DashboardPage() {
         setTapStatus('TAPPED_IN');
         if (insideZone !== false) toast.success('Tapped In! Shift started.');
 
-
+      } else if (tapStatus === 'TAPPED_OUT') {
+        // Tap In again (resume) — check geofencing (warn if outside, but allow)
+        if (insideZone === false) {
+          toast.warning('⚠️ You are outside the office zone. Tap-In recorded anyway.', { duration: 5000 });
+        }
+        const record = await attendanceService.updateAttendance(tapRecord.id, {
+          check_in: timeStr,
+          check_out: null,
+          notes: `${tapRecord.notes || ''}\nTapped In via Dashboard at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
+        });
+        setTapRecord(record);
+        setTapStatus('TAPPED_IN');
+        if (insideZone !== false) toast.success('Tapped In! Shift resumed.');
 
       } else if (tapStatus === 'TAPPED_IN') {
         // Tap Out — warn if outside zone but always allow
@@ -507,47 +519,36 @@ export default function DashboardPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="relative z-10">
-                {tapStatus === 'OFFLINE' && (
-                  <button
-                    disabled={isTapping}
-                    onClick={handleTap}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-200 group active:scale-[0.98]"
-                  >
-                    {isTapping ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <Fingerprint className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                        <span>Tap In</span>
-                      </>
-                    )}
-                  </button>
-                )}
+              <div className="relative z-10 flex gap-3">
+                <button
+                  disabled={isTapping || (tapStatus !== 'OFFLINE' && tapStatus !== 'TAPPED_OUT')}
+                  onClick={handleTap}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${(tapStatus === 'OFFLINE' || tapStatus === 'TAPPED_OUT') ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200' : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'}`}
+                >
+                  {isTapping && (tapStatus === 'OFFLINE' || tapStatus === 'TAPPED_OUT') ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Fingerprint className="w-4 h-4" />
+                      <span>Tap In</span>
+                    </span>
+                  )}
+                </button>
 
-                {tapStatus === 'TAPPED_IN' && (
-                  <button
-                    disabled={isTapping}
-                    onClick={handleTap}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-rose-200 group active:scale-[0.98]"
-                  >
-                    {isTapping ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                        <span>Tap Out</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {tapStatus === 'TAPPED_OUT' && (
-                  <div className="w-full flex items-center justify-center gap-2 py-4 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Shift Completed</span>
-                  </div>
-                )}
+                <button
+                  disabled={isTapping || tapStatus !== 'TAPPED_IN'}
+                  onClick={handleTap}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${tapStatus === 'TAPPED_IN' ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200' : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'}`}
+                >
+                  {isTapping && tapStatus === 'TAPPED_IN' ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Tap Out</span>
+                    </span>
+                  )}
+                </button>
               </div>
 
               {/* Status Messages */}
@@ -574,9 +575,9 @@ export default function DashboardPage() {
                 )}
                 {tapStatus === 'TAPPED_OUT' && (
                   <>
-                    <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">SHIFT COMPLETED</p>
+                    <p className="text-xs font-black text-indigo-650 uppercase tracking-widest">TAPPED OUT</p>
                     <p className="text-[11px] font-medium text-slate-500 px-4">
-                      Logged <span className="font-bold text-slate-800">{tapRecord?.work_hours ? Number(tapRecord.work_hours).toFixed(2) : 0}h</span> of work today. See you tomorrow!
+                      Logged <span className="font-bold text-slate-800">{tapRecord?.work_hours ? Number(tapRecord.work_hours).toFixed(2) : 0}h</span> of work today. You can Tap In again to resume shift.
                     </p>
                   </>
                 )}

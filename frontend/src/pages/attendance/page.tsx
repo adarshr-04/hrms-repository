@@ -3,6 +3,7 @@ import {
   Calendar as CalendarIcon,
   Loader2,
   Fingerprint,
+  CheckCircle2,
   MapPin,
   Shield,
   Radio,
@@ -14,7 +15,7 @@ import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types ---------------------------------------------------------------------
 interface AttendanceRecord {
   id: number;
   employee: number;
@@ -27,7 +28,7 @@ interface AttendanceRecord {
   notes?: string;
 }
 
-// ── Status helpers ────────────────────────────────────────────────────────────
+// -- Status helpers ------------------------------------------------------------
 const STATUS_COLOR: Record<string, string> = {
   PRESENT:  'bg-emerald-500',
   LATE:     'bg-amber-500',
@@ -44,7 +45,7 @@ const STATUS_BG: Record<string, string> = {
   ON_LEAVE: 'bg-purple-50 text-purple-700 border-purple-100',
 };
 
-// ── Office zone config (change to your actual office coordinates) ──────────────
+// -- Office zone config (change to your actual office coordinates) --------------
 const OFFICE_LAT    = 12.906245151822224;
 const OFFICE_LNG    = 77.57907788025564;
 const OFFICE_RADIUS = 300; // metres
@@ -59,12 +60,12 @@ const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
+// -----------------------------------------------------------------------------
 export default function AttendancePage() {
   const { user, isAdmin, isManager } = useAuth();
   const isHRAdmin = isAdmin;
 
-  // ── state ──
+  // -- state --
   const [loading,       setLoading]       = useState(true);
   const [records,       setRecords]       = useState<AttendanceRecord[]>([]);
   const [selectedDate,  setSelectedDate]  = useState(new Date());
@@ -84,13 +85,13 @@ export default function AttendancePage() {
   const [searchQ,      setSearchQ]      = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // ── live clock ──
+  // -- live clock --
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // ── Real GPS geofencing using browser Geolocation API ──
+  // -- Real GPS geofencing using browser Geolocation API --
   useEffect(() => {
     if (!navigator.geolocation) {
       setGpsError('Geolocation not supported');
@@ -118,7 +119,7 @@ export default function AttendancePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── running stopwatch ──
+  // -- running stopwatch --
   const getRunningDuration = () => {
     if (!tapRecord?.check_in) return '00:00:00';
     try {
@@ -135,7 +136,7 @@ export default function AttendancePage() {
     } catch { return '00:00:00'; }
   };
 
-  // ── data loaders ──
+  // -- data loaders --
   const checkTodayTapStatus = useCallback(async () => {
     const empId = user?.employee_profile_id;
     if (!empId) return;
@@ -150,6 +151,15 @@ export default function AttendancePage() {
         setTapStatus('OFFLINE');
       }
     } catch (err) { console.error(err); }
+  }, [user?.employee_profile_id]);
+
+  const getTodayTapRecord = useCallback(async () => {
+    const empId = user?.employee_profile_id;
+    if (!empId) return null;
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const logs = await attendanceService.getAll({ employee: empId, attendance_date: todayStr });
+    return (Array.isArray(logs) ? logs : (logs.results ?? []))[0] as AttendanceRecord | undefined || null;
   }, [user?.employee_profile_id]);
 
   const fetchAttendance = useCallback(async () => {
@@ -169,11 +179,11 @@ export default function AttendancePage() {
   useEffect(() => { void fetchAttendance(); }, [fetchAttendance]);
   useEffect(() => { void checkTodayTapStatus(); }, [checkTodayTapStatus]);
 
-  // ── tap handler ──
-  const handleTap = async () => {
+  // -- tap handler --
+  const handleTap = async (action: 'IN' | 'OUT') => {
     const empId = user?.employee_profile_id;
     if (!empId) {
-      // Admin without a personal employee profile — silently ignore
+      console.log('[handleTap] No employee profile ID found.');
       return;
     }
     setIsTapping(true);
@@ -181,38 +191,89 @@ export default function AttendancePage() {
     const timeStr  = currentTime.toLocaleTimeString('en-US', { hour12: false });
 
     try {
-      if (tapStatus === 'OFFLINE') {
-        if (insideZone === false) {
-          toast.warning('⚠️ You are outside the office zone. Tap-In recorded anyway.', { duration: 5000 });
+      const latestRecord = await getTodayTapRecord();
+      const activeRecord = latestRecord || tapRecord;
+      const serverStatus: 'OFFLINE' | 'TAPPED_IN' | 'TAPPED_OUT' =
+        activeRecord?.check_in && !activeRecord.check_out
+          ? 'TAPPED_IN'
+          : activeRecord?.check_in
+          ? 'TAPPED_OUT'
+          : 'OFFLINE';
+      const wantsTapOut = action === 'OUT';
+
+      if (wantsTapOut) {
+        if (serverStatus === 'TAPPED_OUT') {
+          setTapRecord(activeRecord);
+          setTapStatus('TAPPED_OUT');
+          toast.success('You are already tapped out.');
+          await Promise.all([fetchAttendance(), checkTodayTapStatus()]);
+          return;
         }
-        const isLate = currentTime.getHours() > 9 || (currentTime.getHours() === 9 && currentTime.getMinutes() > 30);
-        const rec = await attendanceService.logAttendance({
-          employee: empId, attendance_date: todayStr, check_in: timeStr,
-          status: isLate ? 'LATE' : 'PRESENT',
-          notes: `Tapped In at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
-        });
-        setTapRecord(rec); setTapStatus('TAPPED_IN');
-        if (insideZone !== false) toast.success('Tapped In! Shift started.');
-      } else {
-        if (insideZone === false) {
-          toast.warning('⚠️ You are outside the office zone. Tap-Out recorded anyway.', { duration: 5000 });
+
+        if (!activeRecord?.id || serverStatus !== 'TAPPED_IN') {
+          toast.error('Tap record is missing. Reloading status...');
+          await checkTodayTapStatus();
+          return;
         }
-        const [h, m, s] = (tapRecord!.check_in || '09:30:00').split(':').map(Number);
+
+        if (insideZone === false) {
+          toast.warning('Warning: You are outside the office zone. Tap-Out recorded anyway.', { duration: 5000 });
+        }
+        const [h, m, s] = (activeRecord.check_in || '09:00:00').split(':').map(Number);
         const diffMs = (currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds()) -
                        (h * 3600 + m * 60 + (s || 0));
         const sessionHours = Math.max(0.0001, Number((diffMs / 3600).toFixed(4)));
-        const total = Number((Number(tapRecord!.work_hours || 0) + sessionHours).toFixed(2));
-        const rec = await attendanceService.updateAttendance(tapRecord!.id, {
+        const total = Number((Number(activeRecord.work_hours || 0) + sessionHours).toFixed(2));
+        const rec = await attendanceService.updateAttendance(activeRecord.id, {
           check_out: timeStr, work_hours: total,
-          notes: `${tapRecord?.notes || ''}\nTapped Out at ${currentTime.toLocaleTimeString()}. Session: ${sessionHours.toFixed(2)}h | Total: ${total.toFixed(2)}h${insideZone === false ? ' [Outside Office Zone]' : ''}`
+          notes: `${activeRecord.notes || ''}\nTapped Out at ${currentTime.toLocaleTimeString()}. Session: ${sessionHours.toFixed(2)}h | Total: ${total.toFixed(2)}h${insideZone === false ? ' [Outside Office Zone]' : ''}`
         });
-        setTapRecord(rec); setTapStatus('TAPPED_OUT');
-        if (insideZone !== false) toast.success(`Tapped Out! Total: ${total.toFixed(2)}h`);
-        else toast.success(`Tapped Out! Total: ${total.toFixed(2)}h (outside office zone)`);
+        setTapRecord(rec);
+        setTapStatus('TAPPED_OUT');
+        toast.success(`Tapped Out! Total: ${total.toFixed(2)}h`);
+
+      } else {
+        if (serverStatus === 'TAPPED_IN') {
+          setTapRecord(activeRecord);
+          setTapStatus('TAPPED_IN');
+          toast.success('You are already tapped in.');
+          await Promise.all([fetchAttendance(), checkTodayTapStatus()]);
+          return;
+        }
+
+        if (insideZone === false) {
+          toast.warning('Warning: You are outside the office zone. Tap-In recorded anyway.', { duration: 5000 });
+        }
+
+        if (serverStatus === 'TAPPED_OUT' && activeRecord?.id) {
+          const rec = await attendanceService.updateAttendance(activeRecord.id, {
+            check_in: timeStr,
+            check_out: null,
+            notes: `${activeRecord.notes || ''}\nTapped In at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
+          });
+          setTapRecord(rec);
+          setTapStatus('TAPPED_IN');
+          if (insideZone !== false) toast.success('Tapped In! Shift resumed.');
+        } else {
+          const isLate = currentTime.getHours() > 9 || (currentTime.getHours() === 9 && currentTime.getMinutes() > 30);
+          const rec = await attendanceService.logAttendance({
+            employee: empId, attendance_date: todayStr, check_in: timeStr,
+            status: isLate ? 'LATE' : 'PRESENT',
+            notes: `Tapped In at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
+          });
+          setTapRecord(rec);
+          setTapStatus('TAPPED_IN');
+          if (insideZone !== false) toast.success('Tapped In! Shift started.');
+        }
       }
+
       await Promise.all([fetchAttendance(), checkTodayTapStatus()]);
-    } catch (err) { toast.error('Tap failed. Please try again.'); }
-    finally { setIsTapping(false); }
+    } catch (err) {
+      console.error('[handleTap] Error during tap action:', err);
+      toast.error('Tap failed. Please try again.');
+    } finally {
+      setIsTapping(false);
+    }
   };
 
   const filtered = records.filter(r => {
@@ -223,7 +284,7 @@ export default function AttendancePage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Page header ────────────────────────────────────────── */}
+      {/* -- Page header ------------------------------------------ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Attendance Tracking</h1>
@@ -234,10 +295,10 @@ export default function AttendancePage() {
       </div>
 
       <div className="space-y-6">
-        {/* ── Top row: tap terminal + geofencing ── */}
+        {/* -- Top row: tap terminal + geofencing -- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          {/* Shift Tap Terminal — only shown when user has a linked employee profile */}
+          {/* Shift Tap Terminal - only shown when user has a linked employee profile */}
           {user?.employee_profile_id ? (
             <div className={cn(
               'relative overflow-hidden rounded-2xl p-6 flex flex-col justify-between min-h-[160px] border transition-all',
@@ -249,11 +310,11 @@ export default function AttendancePage() {
             )}>
               {tapStatus === 'TAPPED_IN' && (
                 <>
-                  <div className="absolute inset-0 rounded-2xl border-4 border-white/10 animate-ping" style={{ animationDuration: '3s' }} />
-                  <div className="absolute inset-0 rounded-2xl border-2 border-white/5 animate-ping" style={{ animationDuration: '2s' }} />
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl border-4 border-white/10 animate-ping" style={{ animationDuration: '3s' }} />
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-white/5 animate-ping" style={{ animationDuration: '2s' }} />
                 </>
               )}
-              <div className="relative">
+              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Fingerprint className="w-5 h-5 text-white/80" />
@@ -279,26 +340,48 @@ export default function AttendancePage() {
                   <div className="text-indigo-200 text-xs font-semibold mt-1">Not checked in today</div>
                 )}
               </div>
-              {tapStatus === 'TAPPED_OUT' ? (
-                <div className="mt-4 w-full py-2.5 rounded-xl font-black text-xs text-center bg-white/10 text-white/50 border border-white/10 select-none">
-                  Shift Completed
-                </div>
-              ) : (
+              <div className="relative z-10 mt-4 flex gap-3">
                 <button
-                  onClick={handleTap}
-                  disabled={isTapping}
+                  type="button"
+                  onClick={() => handleTap('IN')}
+                  disabled={isTapping || (tapStatus !== 'OFFLINE' && tapStatus !== 'TAPPED_OUT')}
                   className={cn(
-                    'mt-4 w-full py-2.5 rounded-xl font-black text-sm transition-all active:scale-95',
-                    tapStatus === 'TAPPED_IN'
-                      ? 'bg-rose-500 hover:bg-rose-400 text-white shadow-md shadow-rose-900/30'
-                      : 'bg-white/20 hover:bg-white/30 text-white border border-white/30'
+                    'flex-1 py-2.5 rounded-xl font-black text-sm transition-all active:scale-95',
+                    (tapStatus === 'OFFLINE' || tapStatus === 'TAPPED_OUT')
+                      ? 'bg-white/20 hover:bg-white/30 text-white border border-white/30'
+                      : 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed'
                   )}
                 >
-                  {isTapping
-                    ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
-                    : tapStatus === 'TAPPED_IN' ? 'Tap Out ⏹' : 'Tap In ▶'}
+                  {isTapping && (tapStatus === 'OFFLINE' || tapStatus === 'TAPPED_OUT') ? (
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Fingerprint className="w-4 h-4" />
+                      <span>Tap In</span>
+                    </span>
+                  )}
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => handleTap('OUT')}
+                  disabled={isTapping || tapStatus !== 'TAPPED_IN'}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl font-black text-sm transition-all active:scale-95',
+                    tapStatus === 'TAPPED_IN'
+                      ? 'bg-rose-500 hover:bg-rose-400 text-white shadow-md shadow-rose-900/30'
+                      : 'bg-white/5 text-white/30 border border-white/5 cursor-not-allowed'
+                  )}
+                >
+                  {isTapping && tapStatus === 'TAPPED_IN' ? (
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Tap Out</span>
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           ) : (
             /* Admin / manager without linked employee profile */
@@ -360,23 +443,23 @@ export default function AttendancePage() {
                 insideZone === true  ? 'text-emerald-400' : 'text-slate-500'
               )}>
                 {gpsError
-                  ? '✕ GPS Unavailable'
+                  ? 'X GPS Unavailable'
                   : !gpsLocked
                   ? 'Acquiring GPS...'
                   : insideZone === true
-                  ? '✓ Inside Office Zone'
+                  ? 'Inside Office Zone'
                   : insideZone === false
-                  ? '⚠ Outside Office Zone'
+                  ? 'Warning: Outside Office Zone'
                   : 'Checking zone...'}
               </div>
               <div className="text-slate-500 text-[10px] font-semibold mt-1 font-mono">
                 {userLat !== null && userLng !== null
-                  ? `${userLat.toFixed(4)}° N, ${userLng.toFixed(4)}° E`
-                  : '--- ° N, --- ° E'}
+                  ? `${userLat.toFixed(4)} deg N, ${userLng.toFixed(4)} deg E`
+                  : '---  deg N, ---  deg E'}
               </div>
               {insideZone === false && (
                 <div className="mt-1.5 text-[9px] font-black text-amber-400 uppercase tracking-wider">
-                  ⚠ You are outside the office zone
+                  Warning: You are outside the office zone
                 </div>
               )}
             </div>
@@ -408,7 +491,7 @@ export default function AttendancePage() {
 
         </div>
 
-        {/* ── Attendance Table ── */}
+        {/* -- Attendance Table -- */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-3 flex-1 w-full">
@@ -445,7 +528,7 @@ export default function AttendancePage() {
             {loading ? (
               <div className="flex-1 flex items-center justify-center gap-3 text-slate-400 p-12">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-                <span className="font-semibold">Loading records…</span>
+                <span className="font-semibold">Loading records...</span>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-4 p-12 text-center">
@@ -472,7 +555,7 @@ export default function AttendancePage() {
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-xs font-black text-indigo-700 uppercase">
                             {(rec.employee_name || '??').split(' ').map(n => n[0]).join('')}
                           </div>
-                          <span className="text-sm font-bold text-slate-900">{rec.employee_name || '—'}</span>
+                          <span className="text-sm font-bold text-slate-900">{rec.employee_name || '-'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -484,12 +567,12 @@ export default function AttendancePage() {
                           {rec.status.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-mono font-semibold text-slate-700">{rec.check_in || '—'}</td>
-                      <td className="px-6 py-4 text-sm font-mono font-semibold text-slate-700">{rec.check_out || '—'}</td>
+                      <td className="px-6 py-4 text-sm font-mono font-semibold text-slate-700">{rec.check_in || '-'}</td>
+                      <td className="px-6 py-4 text-sm font-mono font-semibold text-slate-700">{rec.check_out || '-'}</td>
                       <td className="px-6 py-4">
-                        <span className="text-sm font-black text-slate-900">{rec.work_hours ? `${Number(rec.work_hours).toFixed(2)}h` : '—'}</span>
+                        <span className="text-sm font-black text-slate-900">{rec.work_hours ? `${Number(rec.work_hours).toFixed(2)}h` : '-'}</span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400 italic max-w-xs truncate">{rec.notes || '—'}</td>
+                      <td className="px-6 py-4 text-xs text-slate-400 italic max-w-xs truncate">{rec.notes || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -501,3 +584,4 @@ export default function AttendancePage() {
     </div>
   );
 }
+

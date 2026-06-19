@@ -364,6 +364,7 @@ export default function EmployeeProfilePage() {
               <InfoBadge icon={<Mail className="w-3 h-3" />} text={employee.email} />
               <InfoBadge icon={<Phone className="w-3 h-3" />} text={employee.phone_number || 'N/A'} />
               <InfoBadge icon={<Building2 className="w-3 h-3" />} text={employee.department_name || 'General Org'} />
+              {employee.branch_name && <InfoBadge icon={<MapPin className="w-3 h-3" />} text={employee.branch_name} />}
             </div>
           </div>
         </div>
@@ -398,7 +399,7 @@ export default function EmployeeProfilePage() {
                 <Section title="Organizational Alignment">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <DataField label="Reporting Unit" value={employee.department_name || 'Global'} />
-                      <DataField label="Executive Manager" value={employee.manager_name || 'Self-Directed'} />
+                      <DataField label="Assigned Branch" value={employee.branch_name || 'Unassigned'} />
                       <DataField label="Commission Date" value={employee.hire_date || 'N/A'} />
                       <DataField label="Service Tenure" value="Active Member" />
                    </div>
@@ -602,7 +603,6 @@ export default function EmployeeProfilePage() {
           department={employee.department_name || 'General'}
           hireDate={employee.hire_date}
           employmentType={employee.employment_type?.replace('_', ' ')}
-          managerName={employee.manager_name}
           onDownloadPDF={handleOfferDownloadPDF}
           onSaveToVault={handleOfferSaveToVault}
           isGeneratingPdf={generatingPdf}

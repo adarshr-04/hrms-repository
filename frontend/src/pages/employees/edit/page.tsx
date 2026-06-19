@@ -34,7 +34,8 @@ export default function EditEmployee() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [managers, setManagers] = useState<Employee[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(undefined);
 
   const { register, handleSubmit, setValue, watch, formState: { errors }, setError } = useForm();
@@ -46,15 +47,20 @@ export default function EditEmployee() {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const [depts, emps, currentEmp] = await Promise.all([
+      const [depts, desigs, currentEmp, branchesData] = await Promise.all([
         employeeService.getDepartments(),
-        employeeService.getAll(),
-        employeeService.getById(id as string)
+        employeeService.getDesignations(),
+        employeeService.getById(id as string),
+        employeeService.getBranches?.() || Promise.resolve([])
       ]);
 
       setDepartments(depts);
-      const employeeList = Array.isArray(emps) ? emps : emps.results;
-      setManagers(employeeList.filter((e) => String(e.id) !== String(id)));
+      if (branchesData && Array.isArray(branchesData)) {
+        setBranches(branchesData);
+      }
+      if (desigs && Array.isArray(desigs)) {
+        setDesignations(desigs);
+      }
 
       // Pre-fill the form with COMPLETE employee data
       const data = currentEmp;
@@ -188,7 +194,13 @@ export default function EditEmployee() {
           {/* Org */}
           <FormSection title="Organizational Flow" icon={<Briefcase className="w-3.5 h-3.5" />}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <FormInput label="Official Job Title" name="job_title" register={register} error={errors.job_title} required />
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Official Job Title</label>
+                <select {...register('job_title', { required: true })} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
+                  <option value="">Select Designation</option>
+                  {designations.map((d: any) => <option key={d.id} value={d.title}>{d.title}</option>)}
+                </select>
+              </div>
 
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Operational Unit</label>
@@ -199,10 +211,10 @@ export default function EditEmployee() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Reporting Manager</label>
-                <select {...register('manager')} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
-                  <option value="">No Direct Manager</option>
-                  {managers.map((m: any) => <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>)}
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Assigned Branch</label>
+                <select {...register('branch')} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
+                  <option value="">Select Branch</option>
+                  {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
 

@@ -4,6 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     # Employee
     DepartmentViewSet,
+    BranchViewSet,
+    DesignationViewSet,
     EmployeeViewSet,
     DocumentViewSet,
     # Accounts
@@ -47,6 +49,8 @@ router = DefaultRouter()
 # ── /api/employees/* ──────────────────────────────────────
 router.register(r'employees/employees',   EmployeeViewSet)
 router.register(r'employees/departments', DepartmentViewSet)
+router.register(r'employees/branches',    BranchViewSet)
+router.register(r'employees/designations', DesignationViewSet)
 router.register(r'employees/documents',   DocumentViewSet)
 
 # ── /api/accounts/* ───────────────────────────────────────

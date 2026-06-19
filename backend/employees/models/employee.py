@@ -9,7 +9,6 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-
 class Department(BaseModel):
     department_name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -68,6 +67,10 @@ class Employee(BaseModel):
         Department, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='employees'
     )
+    branch = models.ForeignKey(
+        'Branch', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='employees'
+    )
     manager = models.ForeignKey(
         'self', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='subordinates'
@@ -92,7 +95,8 @@ class Employee(BaseModel):
         db_table = 'employees_employee'
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name or ''}".strip()
+        branch_str = f" ({self.branch.name})" if self.branch else ""
+        return f"{self.first_name} {self.last_name or ''}".strip() + branch_str
 
     def save(self, *args, **kwargs):
         """
@@ -131,3 +135,14 @@ class Document(BaseModel):
 
     def __str__(self):
         return f"{self.employee.employee_id} - {self.document_type}"
+
+
+class Designation(BaseModel):
+    title = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        db_table = 'employees_designation'
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title

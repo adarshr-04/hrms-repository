@@ -1,4 +1,3 @@
-from datetime import datetime, time
 from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied, NotAuthenticated
@@ -93,29 +92,6 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     raise PermissionDenied("You can only log attendance for yourself.")
         except Exception:
             raise PermissionDenied("Invalid profile lookup.")
-
-        status = serializer.validated_data.get('status', 'PRESENT')
-        check_in = serializer.validated_data.get('check_in')
-
-        if check_in and status == 'PRESENT':
-            shift = employee.shift
-            if shift:
-                start_t = shift.start_time
-                grace = shift.grace_period
-            else:
-                start_t = time(9, 30, 0)
-                grace = 0
-
-            limit_m = start_t.minute + grace
-            limit_h = start_t.hour + (limit_m // 60)
-            limit_m = limit_m % 60
-
-            check_in_time = check_in
-            if isinstance(check_in_time, str):
-                check_in_time = datetime.strptime(check_in_time, "%H:%M:%S").time()
-
-            if check_in_time.hour > limit_h or (check_in_time.hour == limit_h and check_in_time.minute > limit_m):
-                serializer.validated_data['status'] = 'LATE'
 
         serializer.save()
 

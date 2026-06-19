@@ -38,6 +38,61 @@ export const employeeService = {
     return response.data;
   },
 
+  createDepartment: async (data: { department_name: string; description?: string }) => {
+    const response = await api.post('/employees/departments/', data);
+    return response.data;
+  },
+
+  updateDepartment: async (id: number | string, data: { department_name: string; description?: string }) => {
+    const response = await api.put(`/employees/departments/${id}/`, data);
+    return response.data;
+  },
+
+  deleteDepartment: async (id: number | string) => {
+    const response = await api.delete(`/employees/departments/${id}/`);
+    return response.data;
+  },
+
+  getBranches: async (): Promise<any[]> => {
+    const response = await api.get('/employees/branches/');
+    return response.data;
+  },
+
+  createBranch: async (data: { name: string; address?: string }) => {
+    const response = await api.post('/employees/branches/', data);
+    return response.data;
+  },
+
+  updateBranch: async (id: number | string, data: { name: string; address?: string }) => {
+    const response = await api.put(`/employees/branches/${id}/`, data);
+    return response.data;
+  },
+
+  deleteBranch: async (id: number | string) => {
+    const response = await api.delete(`/employees/branches/${id}/`);
+    return response.data;
+  },
+
+  getDesignations: async (): Promise<any[]> => {
+    const response = await api.get('/employees/designations/');
+    return response.data;
+  },
+
+  createDesignation: async (data: { title: string }) => {
+    const response = await api.post('/employees/designations/', data);
+    return response.data;
+  },
+
+  updateDesignation: async (id: number | string, data: { title: string }) => {
+    const response = await api.put(`/employees/designations/${id}/`, data);
+    return response.data;
+  },
+
+  deleteDesignation: async (id: number | string) => {
+    const response = await api.delete(`/employees/designations/${id}/`);
+    return response.data;
+  },
+
   bulkImport: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

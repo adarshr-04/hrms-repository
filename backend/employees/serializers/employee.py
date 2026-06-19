@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from employees.models import Department, Employee, Document
+from employees.models import Department, Branch, Employee, Document, Designation
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -8,9 +8,16 @@ class DepartmentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BranchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Branch
+        fields = '__all__'
+
+
 class EmployeeSerializer(serializers.ModelSerializer):
     manager_name = serializers.ReadOnlyField(source='manager.get_full_name')
     department_name = serializers.ReadOnlyField(source='department.department_name')
+    branch_name = serializers.ReadOnlyField(source='branch.name')
 
     class Meta:
         model = Employee
@@ -19,6 +26,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'email', 'phone_number', 'date_of_birth', 'hire_date',
             'job_title', 'employment_type', 'status',
             'department', 'department_name',
+            'branch', 'branch_name',
             'manager', 'manager_name', 'avatar',
             'alternative_email', 'alternative_phone_number',
             'current_address', 'permanent_address', 'end_date',
@@ -46,6 +54,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'last_name': {'required': False, 'allow_blank': True, 'allow_null': True},
             'gender': {'required': False, 'allow_null': True, 'allow_blank': True},
             'department': {'required': False, 'allow_null': True},
+            'branch': {'required': False, 'allow_null': True},
             'employment_type': {'required': False},
             'status': {'required': False},
             'manager': {'required': False, 'allow_null': True},
@@ -119,4 +128,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
 class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
+        fields = '__all__'
+
+
+class DesignationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Designation
         fields = '__all__'

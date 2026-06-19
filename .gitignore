@@ -28,15 +28,24 @@ media/
 backend/create_apps.ps1
 
 # =====================
-# Node / Next.js
+# Node / React / Vite
 # =====================
 node_modules/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/build/
+frontend/dist/
 .pnp.*
 .yarn/*
+
+# =====================
+# Backend Seed & Dev Scripts
+# =====================
+backend/seed_*.py
+backend/create_admins.py
+backend/refactor.js
+frontend/refactor.js
 
 # Debug logs
 npm-debug.log*

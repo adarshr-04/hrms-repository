@@ -205,7 +205,7 @@ export default function LeavesPage() {
               </div>
 
               <div className="flex items-center gap-2 ml-auto">
-                {leave.status === 'PENDING' && (isAdmin || isHR || isManager) ? (
+                {leave.status === 'PENDING' && (isAdmin || isHR || isManager) && leave.employee !== user?.employee_profile_id ? (
                   <>
                     <button 
                       onClick={() => handleStatusUpdate(leave.id, 'REJECTED')}

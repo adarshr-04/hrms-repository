@@ -1,4 +1,4 @@
-from .employee import DepartmentSerializer, EmployeeSerializer, DocumentSerializer
+from .employee import DepartmentSerializer, BranchSerializer, EmployeeSerializer, DocumentSerializer, DesignationSerializer
 from .accounts import UserSerializer, NotificationSerializer, AnnouncementSerializer
 from .attendance import ShiftSerializer, AttendanceSerializer
 from .leave import LeaveSerializer
@@ -11,7 +11,7 @@ from .recruitment import (
 )
 
 __all__ = [
-    'DepartmentSerializer', 'EmployeeSerializer', 'DocumentSerializer',
+    'DepartmentSerializer', 'BranchSerializer', 'EmployeeSerializer', 'DocumentSerializer', 'DesignationSerializer',
     'UserSerializer', 'NotificationSerializer', 'AnnouncementSerializer',
     'ShiftSerializer', 'AttendanceSerializer',
     'LeaveSerializer',

@@ -6,8 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS
 from rest_framework.response import Response
 
-from employees.models import Department, Employee, Document
-from employees.serializers import DepartmentSerializer, EmployeeSerializer, DocumentSerializer
+from employees.models import Department, Branch, Employee, Document, Designation
+from employees.serializers import DepartmentSerializer, BranchSerializer, EmployeeSerializer, DocumentSerializer, DesignationSerializer
 from employees.utils import get_user_role
 
 
@@ -27,13 +27,29 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 
+class BranchViewSet(viewsets.ModelViewSet):
+    queryset = Branch.objects.all()
+    serializer_class = BranchSerializer
+    permission_classes = [IsHROrAdminOrReadOnly]
+    pagination_class = None
+    search_fields = ['name', 'city']
+    filterset_fields = ['city']
+
+
+class DesignationViewSet(viewsets.ModelViewSet):
+    queryset = Designation.objects.all()
+    serializer_class = DesignationSerializer
+    permission_classes = [IsHROrAdminOrReadOnly]
+    pagination_class = None
+
+
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsHROrAdminOrReadOnly]
     pagination_class = None
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
-    filterset_fields = ['department', 'status', 'employment_type']
+    filterset_fields = ['department', 'branch', 'status', 'employment_type']
     search_fields = ['first_name', 'last_name', 'employee_id', 'email']
 
     def get_queryset(self):

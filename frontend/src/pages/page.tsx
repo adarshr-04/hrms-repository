@@ -71,28 +71,7 @@ export default function DashboardPage() {
   const [isTapping, setIsTapping] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
 
-  // GPS Geofencing States (aligned with Attendance page)
-  const [gpsLocked, setGpsLocked] = useState(false);
-  const [userLat, setUserLat] = useState<number | null>(null);
-  const [userLng, setUserLng] = useState<number | null>(null);
-  const [insideZone, setInsideZone] = useState<boolean | null>(null);
-  const [gpsError, setGpsError] = useState<string | null>(null);
 
-
-  // Office zone config (must match Attendance page)
-  const OFFICE_LAT = 12.906245151822224;
-  const OFFICE_LNG = 77.57907788025564;
-  const OFFICE_RADIUS = 300;
-
-  const haversineDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371000;
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  };
 
   const navigate = useNavigate();
 
@@ -153,33 +132,7 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // GPS Geofencing watcher (aligned with Attendance page)
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setGpsError('Geolocation not supported');
-      setGpsLocked(false);
-      return;
-    }
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setUserLat(latitude);
-        setUserLng(longitude);
-        setGpsLocked(true);
-        setGpsError(null);
-        const dist = haversineDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
-        setInsideZone(dist <= OFFICE_RADIUS);
-      },
-      (err) => {
-        setGpsError(err.message);
-        setGpsLocked(false);
-        setInsideZone(null);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
 
   // Running stopwatch duration calculator (HH:MM:SS)
   const getRunningDuration = () => {
@@ -341,46 +294,34 @@ export default function DashboardPage() {
 
     try {
       if (tapStatus === 'OFFLINE') {
-        // Tap In — check geofencing (warn if outside, but allow)
-        if (insideZone === false) {
-          toast.warning('⚠️ You are outside the office zone. Tap-In recorded anyway.', { duration: 5000 });
-        }
         const isLate = currentTime.getHours() > 9 || (currentTime.getHours() === 9 && currentTime.getMinutes() > 30);
         const record = await attendanceService.logAttendance({
           employee: empId,
           attendance_date: todayStr,
           check_in: timeStr,
           status: isLate ? 'LATE' : 'PRESENT',
-          notes: `Tapped In via Dashboard at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
+          notes: `Tapped In via Dashboard at ${currentTime.toLocaleTimeString()}`,
         });
         setTapRecord(record);
         setTapStatus('TAPPED_IN');
-        if (insideZone !== false) toast.success('Tapped In! Shift started.');
+        toast.success('Tapped In! Shift started.');
 
       } else if (tapStatus === 'TAPPED_OUT') {
-        // Tap In again (resume) — check geofencing (warn if outside, but allow)
-        if (insideZone === false) {
-          toast.warning('⚠️ You are outside the office zone. Tap-In recorded anyway.', { duration: 5000 });
-        }
         const record = await attendanceService.updateAttendance(tapRecord.id, {
           check_in: timeStr,
           check_out: null,
-          notes: `${tapRecord.notes || ''}\nTapped In via Dashboard at ${currentTime.toLocaleTimeString()}${insideZone === false ? ' [Outside Office Zone]' : ''}`
+          notes: `${tapRecord.notes || ''}\nTapped In via Dashboard at ${currentTime.toLocaleTimeString()}`,
         });
         setTapRecord(record);
         setTapStatus('TAPPED_IN');
-        if (insideZone !== false) toast.success('Tapped In! Shift resumed.');
+        toast.success('Tapped In! Shift resumed.');
 
       } else if (tapStatus === 'TAPPED_IN') {
-        // Tap Out — warn if outside zone but always allow
         if (!tapRecord || !tapRecord.id) {
           toast.error("Tap record is missing. Reloading status...");
           await checkTodayTapStatus();
           setIsTapping(false);
           return;
-        }
-        if (insideZone === false) {
-          toast.warning('⚠️ You are outside the office zone. Tap-Out recorded anyway.', { duration: 5000 });
         }
         const checkInTime = tapRecord.check_in || "09:00:00";
         const [inH, inM, inS] = checkInTime.split(':').map(Number);
@@ -392,7 +333,7 @@ export default function DashboardPage() {
         const record = await attendanceService.updateAttendance(tapRecord.id, {
           check_out: timeStr,
           work_hours: total,
-          notes: `${tapRecord.notes || ''}\nTapped Out via Dashboard at ${currentTime.toLocaleTimeString()}. Session: ${sessionHours.toFixed(2)}h | Total: ${total.toFixed(2)}h${insideZone === false ? ' [Outside Office Zone]' : ''}`
+          notes: `${tapRecord.notes || ''}\nTapped Out via Dashboard at ${currentTime.toLocaleTimeString()}. Session: ${sessionHours.toFixed(2)}h | Total: ${total.toFixed(2)}h`,
         });
         setTapRecord(record);
         setTapStatus('TAPPED_OUT');
@@ -556,7 +497,7 @@ export default function DashboardPage() {
                 {tapStatus === 'OFFLINE' && (
                   <>
                     <p className="text-xs font-black text-rose-500 uppercase tracking-widest">OFFLINE</p>
-                    <p className="text-[11px] font-medium text-slate-500 px-4">Tap In to log your check-in time and start today's shift.</p>
+                    <p className="text-[11px] font-medium text-slate-500 px-4">Tap In to log your tap-in time and start today's shift.</p>
                   </>
                 )}
                 {tapStatus === 'TAPPED_IN' && (
@@ -632,7 +573,7 @@ export default function DashboardPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
-              <span>Post Bulletin</span>
+              <span>Post</span>
             </button>
           )}
         </div>
@@ -640,7 +581,7 @@ export default function DashboardPage() {
         {loadingAnnouncements ? (
           <div className="py-8 flex justify-center items-center text-slate-400 gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-            <span>Loading bulletins...</span>
+            <span className="ml-2">Loading posts...</span>
           </div>
         ) : announcements.length === 0 ? (
           <div className="text-center py-8 text-slate-550 border border-dashed border-slate-200 rounded-xl">
@@ -778,7 +719,7 @@ export default function DashboardPage() {
                 <input
                   type="text"
                   required
-                  placeholder="Enter bulletin title"
+                  placeholder="Enter post title"
                   value={newAnnTitle}
                   onChange={(e) => setNewAnnTitle(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500"

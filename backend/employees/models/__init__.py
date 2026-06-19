@@ -1,4 +1,5 @@
-from .employee import BaseModel, Department, Employee, Document
+from .employee import BaseModel, Department, Employee, Document, Designation
+from .branch import Branch
 from .accounts import Role, UserRole, Notification, PasswordResetCode, Announcement, EmployeeInviteToken
 from .attendance import Shift, Attendance
 from .leave import Leave
@@ -8,7 +9,7 @@ from .training import Training, Enrollment
 from .recruitment import JobPosting, Candidate, Application, Interview, OfferLetter
 
 __all__ = [
-    'BaseModel', 'Department', 'Employee', 'Document',
+    'BaseModel', 'Department', 'Branch', 'Employee', 'Document', 'Designation',
     'Role', 'UserRole', 'Notification', 'PasswordResetCode', 'Announcement', 'EmployeeInviteToken',
     'Shift', 'Attendance',
     'Leave',

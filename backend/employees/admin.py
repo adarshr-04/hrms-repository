@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Department, Employee, Document,
+    Department, Employee, Document, Designation,
     Role, UserRole, Notification, PasswordResetCode, Announcement,
     Shift, Attendance,
     Leave,
@@ -19,13 +19,19 @@ class DepartmentAdmin(admin.ModelAdmin):
     search_fields = ('department_name',)
 
 
+@admin.register(Designation)
+class DesignationAdmin(admin.ModelAdmin):
+    list_display = ('title',)
+    search_fields = ('title',)
+
+
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = (
         'employee_id', 'first_name', 'last_name', 'email',
-        'job_title', 'department', 'employment_type', 'status'
+        'job_title', 'department', 'branch', 'employment_type', 'status'
     )
-    list_filter = ('department', 'status', 'employment_type', 'gender')
+    list_filter = ('department', 'branch', 'status', 'employment_type', 'gender')
     search_fields = ('first_name', 'last_name', 'employee_id', 'email')
     readonly_fields = ('created_at', 'updated_at')
     fieldsets = (
@@ -36,7 +42,7 @@ class EmployeeAdmin(admin.ModelAdmin):
             'fields': ('email', 'phone_number', 'alternative_email', 'alternative_phone_number')
         }),
         ('Professional Details', {
-            'fields': ('department', 'job_title', 'employment_type', 'status', 'hire_date', 'end_date', 'manager')
+            'fields': ('department', 'branch', 'job_title', 'employment_type', 'status', 'hire_date', 'end_date', 'manager')
         }),
         ('Personal Details', {
             'fields': ('gender', 'date_of_birth', 'current_address', 'permanent_address')
@@ -98,8 +104,11 @@ class ShiftAdmin(admin.ModelAdmin):
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'attendance_date', 'status', 'check_in', 'check_out')
-    list_filter = ('status', 'attendance_date')
+    list_display = (
+        'employee', 'attendance_date', 'status', 
+        'check_in', 'check_out'
+    )
+    list_filter = ('status', 'attendance_date', 'employee__branch', 'employee__department')
     search_fields = ('employee__first_name', 'employee__last_name')
 
 

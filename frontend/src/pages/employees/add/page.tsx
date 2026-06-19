@@ -22,29 +22,13 @@ interface EmployeeFormData {
   employee_id: string;
   job_title: string;
   department: string;
+  branch: string;
   current_address: string;
   permanent_address: string;
   hire_date: string;
   end_date?: string;
   status: string;
 }
-
-const DESIGNATIONS = [
-  { label: "Select Designation", value: "" },
-  { label: "Junior Software Engineer", value: "JUNIOR_SOFTWARE_ENGINEER" },
-  { label: "Software Engineer", value: "SOFTWARE_ENGINEER" },
-  { label: "Senior Software Engineer", value: "SENIOR_SOFTWARE_ENGINEER" },
-  { label: "Technical Lead", value: "TECHNICAL_LEAD" },
-  { label: "Full Stack Developer", value: "FULL_STACK_DEVELOPER" },
-  { label: "System Administrator", value: "SYSTEM_ADMINISTRATOR" },
-  { label: "IT Support Specialist", value: "IT_SUPPORT_SPECIALIST" },
-  { label: "Cybersecurity Analyst", value: "CYBERSECURITY_ANALYST" },
-  { label: "Security Architect", value: "SECURITY_ARCHITECT" },
-  { label: "Presales Engineer", value: "PRESALES_ENGINEER" },
-  { label: "Solution Architect", value: "SOLUTION_ARCHITECT" },
-  { label: "Project Manager", value: "PROJECT_MANAGER" },
-  { label: "Quality Assurance Engineer", value: "QA_ENGINEER" },
-];
 
 const VALIDATION_RULES = {
   email: {
@@ -95,13 +79,15 @@ export default function AddEmployeePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(undefined);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
 
   const { register, handleSubmit, setError, formState: { errors } } = useForm<EmployeeFormData>({
     defaultValues: {
       full_name: "", email: "", alternative_email: "",
       phone_number: "", alternative_phone_number: "",
       date_of_birth: "", employee_id: "", job_title: "",
-      department: "", current_address: "", permanent_address: "",
+      department: "", branch: "", current_address: "", permanent_address: "",
       hire_date: "", end_date: "",
       status: "ACTIVE",
     },
@@ -111,11 +97,21 @@ export default function AddEmployeePage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const depts = await employeeService.getDepartments();
+        const [depts, branchesData, desigData] = await Promise.all([
+          employeeService.getDepartments(),
+          employeeService.getBranches?.() || Promise.resolve([]),
+          employeeService.getDesignations()
+        ]);
         setDepartments(depts.map((d) => ({ label: d.department_name, value: d.id })));
+        if (branchesData && Array.isArray(branchesData)) {
+          setBranches(branchesData.map((b: any) => ({ label: b.name, value: b.id })));
+        }
+        if (desigData && Array.isArray(desigData)) {
+          setDesignations(desigData.map((d: any) => ({ label: d.title, value: d.title })));
+        }
       } catch (error) {
         console.error("Failed to load organizational data", error);
-        toast.error("Could not load departments");
+        toast.error("Could not load departments, branches or designations");
       } finally {
         setFetchingData(false);
       }
@@ -236,7 +232,7 @@ export default function AddEmployeePage() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = "first_name,last_name,email,employee_id,job_title,department,phone_number,hire_date,date_of_birth\nJohn,Doe,john@example.com,EMP-1001,Developer,IT & Development,9876543210,2024-01-01,1990-05-15";
+    const csvContent = "first_name,last_name,email,employee_id,job_title,department,branch,phone_number,hire_date,date_of_birth\nJohn,Doe,john@example.com,EMP-1001,Developer,IT & Development,Delhi,9876543210,2024-01-01,1990-05-15";
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -294,25 +290,33 @@ export default function AddEmployeePage() {
                     <Briefcase className="w-4 h-4" /> Employment Details
                   </h3>
                   <div className="grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
-                    <FormInput 
-                      label="Employee ID" 
-                      placeholder="Leave blank for auto-gen" 
-                      error={errors.employee_id} 
-                      registration={register("employee_id")} 
+                    <FormInput
+                      label="Employee ID"
+                      placeholder="Leave blank for auto-gen"
+                      error={errors.employee_id}
+                      registration={register("employee_id")}
                       rightIcon={<div className="px-3 py-1 bg-indigo-50 text-[10px] font-black text-indigo-600 rounded-full uppercase tracking-tighter">Auto-Gen</div>}
                     />
-                    <FormSelect 
-                      label="Department" 
-                      required 
-                      options={[{label: "Select Department", value: ""}, ...departments]} 
-                      registration={register("department", { required: "Required" })} 
-                      loading={fetchingData} 
+                    <FormSelect
+                      label="Department"
+                      required
+                      options={[{label: "Select Department", value: ""}, ...departments]}
+                      registration={register("department", { required: "Required" })}
+                      loading={fetchingData}
                       error={errors.department}
                     />
-                    <FormSelect 
-                      label="Job Designation" 
-                      options={DESIGNATIONS} 
-                      registration={register("job_title")} 
+                    <FormSelect
+                      label="Branch"
+                      options={[{label: "Select Branch", value: ""}, ...branches]}
+                      registration={register("branch")}
+                      loading={fetchingData}
+                      error={errors.branch}
+                    />
+                    <FormSelect
+                      label="Job Designation"
+                      options={[{ label: "Select Designation", value: "" }, ...designations]}
+                      registration={register("job_title")}
+                      loading={fetchingData}
                       error={errors.job_title}
                     />
                     <FormInput label="Hire Date" type="date" registration={register("hire_date")} />

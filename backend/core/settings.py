@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-p)56=220m5g@l+jrd=)nx#xp@gv_bbids7u@2_n-%%tp45)w'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True             # Set to False in production and True in development.
+DEBUG = False             # Set to False in production and True in development.
 
 #ALLOWED_HOSTS = ['3.111.31.237', 'hrmspirlanta.ai', 'www.hrmspirlanta.ai', '127.0.0.1', 'localhost']
 ALLOWED_HOSTS = ['3.111.31.237', "127.0.0.1", "localhost"]  # Update with your actual domain names in production.
@@ -173,5 +173,15 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Email Configuration for Development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email Configuration
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'rounak@pirlanta.in')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'reyt rydm ytfl vkho')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+

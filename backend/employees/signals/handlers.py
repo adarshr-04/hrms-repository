@@ -100,10 +100,10 @@ def employee_created(sender, instance, created, **kwargs):
                 message,
                 getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com'),
                 [instance.email],
-                fail_silently=True,
+                fail_silently=False,
             )
         except Exception as e:
-            print(f"Error generating invite token for employee: {e}")
+            print(f"Error generating invite token or sending activation email for employee: {e}")
 
 
 # 1. Leaves signals

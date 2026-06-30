@@ -76,22 +76,12 @@ function WorkforcePanel({ year }: { year: string }) {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>;
   if (!data) return null;
 
-  const statusData = [
-    { name: 'Active', value: data.by_status.active },
-    { name: 'Inactive', value: data.by_status.inactive },
-    { name: 'Terminated', value: data.by_status.terminated },
-    { name: 'On Leave', value: data.by_status.on_leave },
-  ];
-
-  const genderLabels: Record<string, string> = { M: 'Male', F: 'Female', O: 'Other' };
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <KpiCard label="Total Employees" value={data.total} />
-        <KpiCard label="Active" value={data.by_status.active} color="emerald" />
-        <KpiCard label="Inactive" value={data.by_status.inactive} color="amber" />
-        <KpiCard label="Terminated" value={data.by_status.terminated} color="rose" />
+        <KpiCard label="Departments" value={data.by_department.filter((row) => row.count > 0).length} color="emerald" />
+        <KpiCard label="Designations" value={data.by_designation.filter((row) => row.count > 0).length} color="amber" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -107,58 +97,15 @@ function WorkforcePanel({ year }: { year: string }) {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Status Distribution">
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={80} innerRadius={40} paddingAngle={2}>
-                {statusData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
-              </Pie>
-              <Tooltip
-                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                formatter={(value: any, name: any) => [`${value} employees`, name]}
-              />
-              <Legend
-                verticalAlign="bottom"
-                align="center"
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingTop: 12 }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="By Employment Type">
+        <ChartCard title="Employees by Designation">
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data.by_employment_type}>
+            <BarChart data={data.by_designation.map((row) => ({ ...row, designation: row.designation__title || 'Unassigned' }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="employment_type" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="designation" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: 'none' }} />
               <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Gender Distribution">
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie data={data.by_gender.map(g => ({ name: genderLabels[g.gender] || g.gender, value: g.count }))}
-                dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={75} innerRadius={35} paddingAngle={2}>
-                {data.by_gender.map((_, i) => <Cell key={i} fill={COLORS[i + 3]} />)}
-              </Pie>
-              <Tooltip
-                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                formatter={(value: any, name: any) => [`${value} employees`, name]}
-              />
-              <Legend
-                verticalAlign="bottom"
-                align="center"
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingTop: 12 }}
-              />
-            </PieChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>

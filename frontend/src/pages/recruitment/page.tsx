@@ -1503,7 +1503,7 @@ export default function RecruitmentPage() {
                   <option value="">-- Choose Employee --</option>
                   {employees.map(emp => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.first_name} {emp.last_name || ''} ({emp.job_title || 'Employee'})
+                      {emp.first_name} {emp.last_name || ''} ({emp.designation_name || 'Employee'})
                     </option>
                   ))}
                 </select>

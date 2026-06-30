@@ -79,7 +79,6 @@ class Command(BaseCommand):
                     first_name=first_name,
                     last_name=last_name,
                     email=email,
-                    status='ACTIVE',
                 )
                 self.stdout.write(
                     self.style.SUCCESS(

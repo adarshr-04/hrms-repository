@@ -20,14 +20,13 @@ interface EmployeeFormData {
   alternative_phone_number?: string;
   date_of_birth: string;
   employee_id: string;
-  job_title: string;
+  designation: string;
   department: string;
   branch: string;
   current_address: string;
   permanent_address: string;
   hire_date: string;
   end_date?: string;
-  status: string;
 }
 
 const VALIDATION_RULES = {
@@ -86,10 +85,9 @@ export default function AddEmployeePage() {
     defaultValues: {
       full_name: "", email: "", alternative_email: "",
       phone_number: "", alternative_phone_number: "",
-      date_of_birth: "", employee_id: "", job_title: "",
+      date_of_birth: "", employee_id: "", designation: "",
       department: "", branch: "", current_address: "", permanent_address: "",
       hire_date: "", end_date: "",
-      status: "ACTIVE",
     },
   });
 
@@ -107,7 +105,7 @@ export default function AddEmployeePage() {
           setBranches(branchesData.map((b: any) => ({ label: b.name, value: b.id })));
         }
         if (desigData && Array.isArray(desigData)) {
-          setDesignations(desigData.map((d: any) => ({ label: d.title, value: d.title })));
+          setDesignations(desigData.map((d: any) => ({ label: d.title, value: d.id })));
         }
       } catch (error) {
         console.error("Failed to load organizational data", error);
@@ -232,7 +230,7 @@ export default function AddEmployeePage() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = "first_name,last_name,email,employee_id,job_title,department,branch,phone_number,hire_date,date_of_birth\nJohn,Doe,john@example.com,EMP-1001,Developer,IT & Development,Delhi,9876543210,2024-01-01,1990-05-15";
+    const csvContent = "first_name,last_name,email,employee_id,designation,department,branch,phone_number,hire_date,date_of_birth\nJohn,Doe,john@example.com,EMP-1001,Developer,IT & Development,Delhi,9876543210,2024-01-01,1990-05-15";
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -315,9 +313,9 @@ export default function AddEmployeePage() {
                     <FormSelect
                       label="Job Designation"
                       options={[{ label: "Select Designation", value: "" }, ...designations]}
-                      registration={register("job_title")}
+                      registration={register("designation")}
                       loading={fetchingData}
-                      error={errors.job_title}
+                      error={errors.designation}
                     />
                     <FormInput label="Hire Date" type="date" registration={register("hire_date")} />
                     <FormInput label="End Date" type="date" registration={register("end_date")} />

@@ -230,9 +230,10 @@ export default function DashboardPage() {
 
       const pendingLeavesCount = rawLeaves.filter((l: any) => l.status === 'PENDING').length;
       const activeProjectsCount = rawProjects.filter((p: any) => p.status === 'IN_PROGRESS' || p.status === 'PLANNING').length;
+      const departmentCount = new Set(rawEmployees.map((e: any) => e.department).filter(Boolean)).size;
 
       setStats([
-        { name: 'Total Employees', value: totalEmployees, change: `+${rawEmployees.filter((e: any) => e.status === 'ACTIVE').length} Active`, trend: 'up', icon: Users, color: 'bg-blue-500' },
+        { name: 'Total Employees', value: totalEmployees, change: `${departmentCount} Units`, trend: 'up', icon: Users, color: 'bg-blue-500' },
         { name: 'Present Today', value: presentCount, change: `${totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0}% Rate`, trend: 'up', icon: Calendar, color: 'bg-emerald-500' },
         { name: 'Pending Leaves', value: pendingLeavesCount, change: `${rawLeaves.filter((l: any) => l.status === 'APPROVED').length} Approved`, trend: pendingLeavesCount > 0 ? 'up' : 'down', icon: Clock, color: 'bg-amber-500' },
         { name: 'Active Projects', value: activeProjectsCount, change: `${rawProjects.filter((p: any) => p.status === 'COMPLETED').length} Done`, trend: 'up', icon: Briefcase, color: 'bg-indigo-500' },

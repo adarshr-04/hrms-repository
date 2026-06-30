@@ -336,12 +336,6 @@ export default function EmployeeProfilePage() {
                 </div>
               )}
             </div>
-            <div className={cn(
-              "absolute -right-2 -bottom-2 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-4 border-white shadow-lg",
-              employee.status === 'ACTIVE' ? "bg-emerald-500 text-white" : "bg-slate-400 text-white"
-            )}>
-              {employee.status}
-            </div>
           </div>
 
           {/* Identity Section */}
@@ -351,7 +345,7 @@ export default function EmployeeProfilePage() {
                 {employee.first_name} <span className="font-light">{employee.last_name}</span>
               </h1>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">{employee.job_title || 'MEMBER'}</p>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">{employee.designation_name || 'MEMBER'}</p>
                 <div className="w-1 h-1 rounded-full bg-slate-200 hidden md:block" />
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -401,7 +395,7 @@ export default function EmployeeProfilePage() {
                       <DataField label="Reporting Unit" value={employee.department_name || 'Global'} />
                       <DataField label="Assigned Branch" value={employee.branch_name || 'Unassigned'} />
                       <DataField label="Commission Date" value={employee.hire_date || 'N/A'} />
-                      <DataField label="Service Tenure" value="Active Member" />
+                      <DataField label="End Date" value={employee.end_date || 'Not recorded'} />
                    </div>
                 </Section>
                 <Section title="Residential Details">
@@ -586,7 +580,7 @@ export default function EmployeeProfilePage() {
            <Section title="Service Timeline">
               <div className="space-y-8">
                  <TimelineItem date={employee.hire_date} title="Onboarding Completed" desc="Member officially entered the registry." icon={<Plus className="w-3 h-3" />} />
-                 <TimelineItem date="Current" title="Active Status" desc="Personnel is currently operational." icon={<UserCheck className="w-3 h-3" />} isLast />
+                 <TimelineItem date={employee.end_date || 'Current'} title="Service Record" desc="Personnel record is retained in the registry." icon={<UserCheck className="w-3 h-3" />} isLast />
               </div>
            </Section>
         </div>
@@ -599,10 +593,9 @@ export default function EmployeeProfilePage() {
           onClose={() => setShowOfferModal(false)}
           personName={`${employee.first_name} ${employee.last_name || ''}`}
           personId={employee.employee_id}
-          jobTitle={employee.job_title || 'Team Member'}
+          jobTitle={employee.designation_name || 'Team Member'}
           department={employee.department_name || 'General'}
           hireDate={employee.hire_date}
-          employmentType={employee.employment_type?.replace('_', ' ')}
           onDownloadPDF={handleOfferDownloadPDF}
           onSaveToVault={handleOfferSaveToVault}
           isGeneratingPdf={generatingPdf}

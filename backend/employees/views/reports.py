@@ -19,42 +19,26 @@ class WorkforceReportView(views.APIView):
     def get(self, request):
         require_admin_hr(request.user)
 
-        employees = Employee.objects.all()
+        employees = Employee.objects.filter(end_date__isnull=True)
 
         total = employees.count()
-        active = employees.filter(status='ACTIVE').count()
-        inactive = employees.filter(status='INACTIVE').count()
-        terminated = employees.filter(status='TERMINATED').count()
-        on_leave = employees.filter(status='ON_LEAVE').count()
 
         by_dept = list(
             Department.objects.annotate(
-                count=Count('employees')
+                count=Count('employees', filter=Q(employees__end_date__isnull=True))
             ).values('department_name', 'count').order_by('-count')
         )
 
-        by_type = list(
-            employees.values('employment_type')
+        by_designation = list(
+            employees.values('designation__title')
             .annotate(count=Count('id'))
             .order_by('-count')
         )
 
-        by_gender = list(
-            employees.values('gender')
-            .annotate(count=Count('id'))
-        )
-
         return response.Response({
             'total': total,
-            'by_status': {
-                'active': active,
-                'inactive': inactive,
-                'terminated': terminated,
-                'on_leave': on_leave,
-            },
             'by_department': by_dept,
-            'by_employment_type': by_type,
-            'by_gender': by_gender,
+            'by_designation': by_designation,
         })
 
 

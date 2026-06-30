@@ -15,16 +15,17 @@ class BranchSerializer(serializers.ModelSerializer):
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
-    manager_name = serializers.ReadOnlyField(source='manager.get_full_name')
+    manager_name = serializers.ReadOnlyField(source='manager.full_name')
     department_name = serializers.ReadOnlyField(source='department.department_name')
     branch_name = serializers.ReadOnlyField(source='branch.name')
+    designation_name = serializers.ReadOnlyField(source='designation.title')
 
     class Meta:
         model = Employee
         fields = [
-            'id', 'employee_id', 'first_name', 'last_name', 'gender',
+            'id', 'employee_id', 'first_name', 'last_name',
             'email', 'phone_number', 'date_of_birth', 'hire_date',
-            'job_title', 'employment_type', 'status',
+            'designation', 'designation_name',
             'department', 'department_name',
             'branch', 'branch_name',
             'manager', 'manager_name', 'avatar',
@@ -52,57 +53,13 @@ class EmployeeSerializer(serializers.ModelSerializer):
                 }
             },
             'last_name': {'required': False, 'allow_blank': True, 'allow_null': True},
-            'gender': {'required': False, 'allow_null': True, 'allow_blank': True},
             'department': {'required': False, 'allow_null': True},
             'branch': {'required': False, 'allow_null': True},
-            'employment_type': {'required': False},
-            'status': {'required': False},
             'manager': {'required': False, 'allow_null': True},
             'date_of_birth': {'required': False, 'allow_null': True},
             'hire_date': {'required': False, 'allow_null': True},
         }
 
-    # -------------------------------------------------------------------------
-    # Choice field validators — surface clear, human-readable errors
-    # -------------------------------------------------------------------------
-
-    def validate_employment_type(self, value):
-        valid_choices = [choice[0] for choice in Employee.EMPLOYMENT_TYPES]
-        if value and value not in valid_choices:
-            readable = ', '.join(
-                f'"{c[0]}" ({c[1]})' for c in Employee.EMPLOYMENT_TYPES
-            )
-            raise serializers.ValidationError(
-                f'"{value}" is not a valid employment type. '
-                f'Accepted values are: {readable}.'
-            )
-        return value
-
-    def validate_status(self, value):
-        valid_choices = [choice[0] for choice in Employee.STATUS_CHOICES]
-        if value and value not in valid_choices:
-            readable = ', '.join(
-                f'"{c[0]}" ({c[1]})' for c in Employee.STATUS_CHOICES
-            )
-            raise serializers.ValidationError(
-                f'"{value}" is not a valid status. '
-                f'Accepted values are: {readable}.'
-            )
-        return value
-
-    def validate_gender(self, value):
-        if not value:
-            return value
-        valid_choices = [choice[0] for choice in Employee.GENDER_CHOICES]
-        if value not in valid_choices:
-            readable = ', '.join(
-                f'"{c[0]}" ({c[1]})' for c in Employee.GENDER_CHOICES
-            )
-            raise serializers.ValidationError(
-                f'"{value}" is not a valid gender. '
-                f'Accepted values are: {readable}.'
-            )
-        return value
 
     # -------------------------------------------------------------------------
     # Auto-sync the Django User account when an employee is updated

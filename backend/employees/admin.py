@@ -29,9 +29,9 @@ class DesignationAdmin(admin.ModelAdmin):
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = (
         'employee_id', 'first_name', 'last_name', 'email',
-        'job_title', 'department', 'branch', 'employment_type', 'status'
+        'designation', 'department', 'branch'
     )
-    list_filter = ('department', 'branch', 'status', 'employment_type', 'gender')
+    list_filter = ('designation', 'department', 'branch')
     search_fields = ('first_name', 'last_name', 'employee_id', 'email')
     readonly_fields = ('created_at', 'updated_at')
     fieldsets = (
@@ -42,10 +42,12 @@ class EmployeeAdmin(admin.ModelAdmin):
             'fields': ('email', 'phone_number', 'alternative_email', 'alternative_phone_number')
         }),
         ('Professional Details', {
-            'fields': ('department', 'branch', 'job_title', 'employment_type', 'status', 'hire_date', 'end_date', 'manager')
+            'fields': (
+                'designation', 'department', 'branch', 'hire_date', 'end_date', 'manager',
+            )
         }),
         ('Personal Details', {
-            'fields': ('gender', 'date_of_birth', 'current_address', 'permanent_address')
+            'fields': ( 'date_of_birth', 'current_address', 'permanent_address')
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),

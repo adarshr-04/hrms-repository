@@ -189,10 +189,10 @@ class ForgotPasswordView(views.APIView):
                 message,
                 getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com'),
                 [email],
-                fail_silently=True,
+                fail_silently=False,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            raise ValidationError({'error': f'Failed to send password reset email. Detail: {str(e)}'})
 
         payload = {
             'message': 'Verification code sent successfully.',

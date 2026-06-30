@@ -18,11 +18,12 @@ export interface Employee {
   first_name: string;
   last_name: string;
   email: string;
-  job_title: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'TERMINATED' | 'ON_LEAVE';
-  employment_type: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN';
+  designation?: number;
+  designation_name?: string;
   department?: number;
   department_name?: string;
+  branch?: number;
+  branch_name?: string;
   manager?: number;
   manager_name?: string;
   phone_number?: string;

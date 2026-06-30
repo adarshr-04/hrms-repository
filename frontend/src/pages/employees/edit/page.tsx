@@ -195,10 +195,10 @@ export default function EditEmployee() {
           <FormSection title="Organizational Flow" icon={<Briefcase className="w-3.5 h-3.5" />}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Official Job Title</label>
-                <select {...register('job_title', { required: true })} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Designation</label>
+                <select {...register('designation')} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
                   <option value="">Select Designation</option>
-                  {designations.map((d: any) => <option key={d.id} value={d.title}>{d.title}</option>)}
+                  {designations.map((d: any) => <option key={d.id} value={d.id}>{d.title}</option>)}
                 </select>
               </div>
 
@@ -218,26 +218,8 @@ export default function EditEmployee() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Employment Category</label>
-                <select {...register('employment_type')} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
-                  <option value="FULL_TIME">Full Time Permanent</option>
-                  <option value="PART_TIME">Part Time</option>
-                  <option value="CONTRACT">Contractor</option>
-                  <option value="INTERN">Internship</option>
-                </select>
-              </div>
-
               <FormInput label="Commission Date (Hire Date)" name="hire_date" type="date" register={register} error={errors.hire_date} />
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Current Engagement Status</label>
-                <select {...register('status', { required: true })} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium outline-none">
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                  <option value="TERMINATED">Terminated</option>
-                  <option value="ON_LEAVE">On Leave</option>
-                </select>
-              </div>
+              <FormInput label="End Date" name="end_date" type="date" register={register} error={errors.end_date} />
             </div>
           </FormSection>
 

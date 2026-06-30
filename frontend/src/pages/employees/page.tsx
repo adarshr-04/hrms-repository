@@ -9,17 +9,9 @@ import {
   Phone,
   Building2,
   Users,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
-  UserCheck,
   MapPin,
-  Calendar,
-  MoreVertical,
   X,
-  TrendingUp,
-  ExternalLink,
-  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { employeeService } from '@/services/employeeService';
@@ -32,13 +24,11 @@ export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, active: 0, departments: 0 });
+  const [stats, setStats] = useState({ total: 0, departments: 0 });
   const [showFilters, setShowFilters] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [filters, setFilters] = useState({
     department: '',
-    status: '',
-    type: ''
   });
 
   const fetchEmployees = async () => {
@@ -50,7 +40,6 @@ export default function EmployeesPage() {
 
       setStats({
         total: results.length,
-        active: results.filter(e => e.status === 'ACTIVE').length,
         departments: new Set(results.map(e => e.department)).size
       });
     } catch (error) {
@@ -87,14 +76,12 @@ export default function EmployeesPage() {
       emp.first_name?.toLowerCase().includes(searchStr) ||
       emp.last_name?.toLowerCase().includes(searchStr) ||
       emp.employee_id?.toLowerCase().includes(searchStr) ||
-      emp.job_title?.toLowerCase().includes(searchStr)
+      emp.designation_name?.toLowerCase().includes(searchStr)
     );
 
     const matchesDept = !filters.department || String(emp.department) === filters.department;
-    const matchesStatus = !filters.status || emp.status === filters.status;
-    const matchesType = !filters.type || emp.employment_type === filters.type;
 
-    return matchesSearch && matchesDept && matchesStatus && matchesType;
+    return matchesSearch && matchesDept;
   });
 
   const activeFiltersCount = Object.values(filters).filter(v => v !== '').length;
@@ -118,9 +105,8 @@ export default function EmployeesPage() {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard icon={<Users />} label="Headcount" value={stats.total} color="indigo" />
-        <StatCard icon={<UserCheck />} label="Active" value={stats.active} color="emerald" />
         <StatCard icon={<Building2 />} label="Structure" value={`${stats.departments} Units`} color="amber" />
       </div>
 
@@ -130,7 +116,7 @@ export default function EmployeesPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search employees by name, ID, or job role..."
+            placeholder="Search employees by name, ID, or designation..."
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -156,9 +142,8 @@ export default function EmployeesPage() {
               </div>
               <div className="space-y-4">
                 <FilterSelect label="Department" value={filters.department} options={departments.map(d => ({ value: d.id, label: d.department_name }))} onChange={(val: string) => setFilters({ ...filters, department: val })} />
-                <FilterSelect label="Status" value={filters.status} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} onChange={(val: string) => setFilters({ ...filters, status: val })} />
               </div>
-              <button onClick={() => setFilters({ department: '', status: '', type: '' })} className="w-full py-2 text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 rounded-xl transition-colors">Clear All</button>
+              <button onClick={() => setFilters({ department: '' })} className="w-full py-2 text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 rounded-xl transition-colors">Clear All</button>
             </div>
           )}
         </div>
@@ -218,7 +203,7 @@ function StatCard({ icon, label, value, color }: any) {
 function EmployeeCard({ emp, getAvatarUrl, isAdmin }: any) {
   return (
     <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all group relative overflow-hidden flex flex-col h-full">
-      {/* Top: Name & Status */}
+      {/* Top: Name */}
       <div className="flex justify-between items-start mb-6">
         <div className="text-left flex-1 min-w-0 pr-2">
           {isAdmin ? (
@@ -232,14 +217,8 @@ function EmployeeCard({ emp, getAvatarUrl, isAdmin }: any) {
               {emp.first_name} {emp.last_name}
             </h3>
           )}
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate mt-0.5">{emp.job_title || 'New Member'}</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate mt-0.5">{emp.designation_name || 'New Member'}</p>
         </div>
-        <span className={cn(
-          "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border",
-          emp.status === 'ACTIVE' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100"
-        )}>
-          {emp.status}
-        </span>
       </div>
 
       {/* Middle: Avatar */}

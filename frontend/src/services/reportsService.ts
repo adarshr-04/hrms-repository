@@ -2,10 +2,8 @@ import api from '@/lib/api';
 
 export interface WorkforceReport {
   total: number;
-  by_status: { active: number; inactive: number; terminated: number; on_leave: number };
   by_department: { department_name: string; count: number }[];
-  by_employment_type: { employment_type: string; count: number }[];
-  by_gender: { gender: string; count: number }[];
+  by_designation: { designation__title: string | null; count: number }[];
 }
 
 export interface AttendanceReport {

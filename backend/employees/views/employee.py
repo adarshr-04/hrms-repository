@@ -49,7 +49,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsHROrAdminOrReadOnly]
     pagination_class = None
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
-    filterset_fields = ['department', 'branch', 'status', 'employment_type']
+    filterset_fields = ['department', 'branch', 'designation']
     search_fields = ['first_name', 'last_name', 'employee_id', 'email']
 
     def get_queryset(self):
@@ -61,13 +61,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """
         Override DELETE to soft-delete the employee record.
-        Sets status to TERMINATED and records the end_date as today.
+        Records the end_date as today.
         The record is preserved for audit trail and payroll history.
         """
         employee = self.get_object()
-        employee.status = 'TERMINATED'
         employee.end_date = date.today()
-        employee.save(update_fields=['status', 'end_date', 'updated_at'])
+        employee.save(update_fields=['end_date', 'updated_at'])
         return Response(
             {
                 'message': (
@@ -123,17 +122,31 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 )
                 dept_id = dept_obj.id
 
+            branch_name = row.get('branch')
+            branch_id = None
+            if branch_name:
+                branch_obj, _ = Branch.objects.get_or_create(
+                    name=str(branch_name).strip()
+                )
+                branch_id = branch_obj.id
+
+            designation_name = row.get('designation')
+            designation_id = None
+            if designation_name:
+                designation_obj, _ = Designation.objects.get_or_create(
+                    title=str(designation_name).strip()
+                )
+                designation_id = designation_obj.id
+
             # --- Build the payload dict for the serializer ---
             payload = {
                 'first_name': row.get('first_name'),
                 'last_name': row.get('last_name'),
                 'email': row.get('email'),
                 'phone_number': row.get('phone_number'),
-                'job_title': row.get('job_title'),
-                'employment_type': row.get('employment_type') or 'FULL_TIME',
-                'status': row.get('status') or 'ACTIVE',
-                'gender': row.get('gender'),
                 'department': dept_id,
+                'branch': branch_id,
+                'designation': designation_id,
             }
 
             if row.get('hire_date') is not None:

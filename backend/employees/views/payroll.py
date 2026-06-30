@@ -79,12 +79,12 @@ class PayrollViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        active_employees = Employee.objects.filter(status='ACTIVE')
+        current_employees = Employee.objects.filter(end_date__isnull=True)
         created_count = 0
         skipped_count = 0
 
         with transaction.atomic():
-            for emp in active_employees:
+            for emp in current_employees:
                 exists = Payroll.objects.filter(
                     employee=emp,
                     pay_period_start=pay_period_start,

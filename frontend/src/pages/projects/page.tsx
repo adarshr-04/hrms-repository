@@ -74,7 +74,7 @@ export default function ProjectsPage() {
           ))
         : list;
 
-      setEmployees(assignableEmployees.filter((employee) => employee.status === 'ACTIVE'));
+      setEmployees(assignableEmployees);
     } catch (error) {
       console.error("Failed to fetch employees", error);
     }
@@ -415,7 +415,7 @@ export default function ProjectsPage() {
                   <option value="">Select manager</option>
                   {employees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.first_name} {employee.last_name || ''} ({employee.employee_id}) - {employee.job_title || 'Staff'}
+                      {employee.first_name} {employee.last_name || ''} ({employee.employee_id}) - {employee.designation_name || 'Staff'}
                     </option>
                   ))}
                 </select>
